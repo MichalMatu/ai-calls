@@ -356,12 +356,18 @@ internal class ModelVoiceSettings(
             voiceWorker.execute {
                 val inventory = runCatching {
                     val installed = engine.engines
-                    require(requested == null || installed.any { it.name == requested })
-                    Triple(installed, engine.voices.orEmpty().filter {
-                        it.locale.language == language &&
-                            !it.isNetworkConnectionRequired &&
-                            (requested != PiperServiceContract.PACKAGE || "piperVoice" in it.features)
-                    }.sortedBy { it.name }, engine.defaultEngine)
+                    val voices = ModelVoiceTtsInventoryPolicy.availableOffline(
+                        installedEngines = installed.map { it.name },
+                        selectedEngine = requested,
+                        voices = engine.voices.orEmpty(),
+                        language = language,
+                        piperRequired = requested == PiperServiceContract.PACKAGE,
+                        languageOf = { it.locale.language },
+                        networkRequired = { it.isNetworkConnectionRequired },
+                        piperCapable = { "piperVoice" in it.features },
+                        nameOf = { it.name },
+                    )
+                    Triple(installed, voices, engine.defaultEngine)
                 }.getOrNull()
                 activity.mainExecutor.execute ready@{
                     if (generation != voiceGeneration || activity.isDestroyed || activity.isFinishing) return@ready
@@ -370,7 +376,7 @@ internal class ModelVoiceSettings(
                     if (inventory == null) voiceIssue.text = activity.getString(R.string.mv_voice_missing)
                     else {
                         engineIds = listOf(null) + inventory.first.map { it.name }
-                        val labels = inventory.first.map { engineTitle(it.name, it.label) }
+                        val labels = inventory.first.map { ModelVoiceTtsInventoryPolicy.displayEngineName(it.name, it.label) }
                         val defaultIndex = inventory.first.indexOfFirst { it.name == inventory.third }
                         val automatic = labels.getOrNull(defaultIndex)?.let {
                             activity.getString(R.string.mv_system_engine_named, it)
@@ -539,13 +545,6 @@ internal class ModelVoiceSettings(
             checkResult = reason(activity, "model_native_check_failed")
             refresh()
         }
-    }
-
-    private fun engineTitle(packageName: String, suppliedLabel: String): String = when (packageName) {
-        "com.google.android.tts" -> "Google"
-        "com.samsung.SMT" -> "Samsung"
-        PiperServiceContract.PACKAGE -> "Piper"
-        else -> suppliedLabel
     }
 
     private fun preview(voiceId: String? = draft.voiceId) {
