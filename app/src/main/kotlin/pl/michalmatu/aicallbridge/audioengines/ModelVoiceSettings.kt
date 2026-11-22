@@ -179,16 +179,10 @@ internal class ModelVoiceSettings(
                 if (save(draft.copy(generation = DialogueGenerationSettings.DEFAULTS))) dialog.dismiss()
             }
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                val contextText = context.text.toString().trim()
-                val outputText = output.text.toString().trim()
-                val next = DialogueGenerationSettings(
-                    contextTokens = contextText.toIntOrNull(), outputTokens = outputText.toIntOrNull(),
-                    temperature = temperature.text.toString().replace(',', '.').toDoubleOrNull() ?: Double.NaN,
-                    topK = topK.text.toString().toIntOrNull() ?: 0,
-                    topP = topP.text.toString().replace(',', '.').toDoubleOrNull() ?: Double.NaN,
-                )
-                if (!next.valid() || (next.contextTokens == null && contextText.isNotEmpty()) ||
-                    (next.outputTokens == null && outputText.isNotEmpty())) {
+                val next = DialogueGenerationInputParser.parse(
+                    context.text.toString(), output.text.toString(), temperature.text.toString(),
+                    topK.text.toString(), topP.text.toString())
+                if (next == null) {
                     Toast.makeText(activity, R.string.model_generation_invalid, Toast.LENGTH_SHORT).show()
                 } else if (save(draft.copy(generation = next))) dialog.dismiss()
             }
