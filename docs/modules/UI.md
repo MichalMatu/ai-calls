@@ -1,5 +1,5 @@
 # UI
 
-S22+ `.s8lab`: AI/MANUAL, STOP/takeover tylko dla własnego Call. Outgoing: cel → odbiorcy → SIM/okno → zgoda; nawigacja nie dzwoni. Historia prywatna, PL/EN.
+S22+ `.s8lab`: AI/MANUAL, STOP/takeover dla własnego Call. Outgoing: cel → odbiorcy → SIM/okno → zgoda. Historia, notatki i nagrania prywatne; profile PL/EN.
 
-Ustawienia → Audio GSM: osobno host i autoryzowane ADB; stabilny layout, ręczne odświeżanie, parowanie z powiadomienia bez portów. UI nie dowodzi GSM RX/TX: wymagany [test fizyczny](../PROJECT.md).
+Ustawienia → GSM audio: status hosta i ADB; **Zarządzaj parowaniem** otwiera pole kodu. Kod można też wysłać z szuflady powiadomień. Start hosta jest osobną akcją. [Handoff i screenshoty](../operations/HANDOFF_NEXT_CHAT.md).

@@ -1,7 +1,7 @@
 # Bezpieczeństwo
 
-- Exact Call/SIM/generacja; STOP i takeover odwołują STT/model/TX. END_CALL tylko po TTS i `IncomingEndCallAuthority`.
-- Binder host UID 2000: weryfikacja UID/sesji, watchdog. Kadb tylko `127.0.0.1`, stałe polecenia, model S22+, Android 16 i IDLE; bez Shizuku w GSM lab.
-- ADB: klucz w prywatnym no-backup, bez PII/logów; zapisany klucz nie dowodzi aktualnego połączenia. Kod parowania: jednorazowe prywatne powiadomienie. Debugowanie po reboocie może wymagać ręcznej zgody.
-- `CallCommitmentGate`, `FactDisclosurePolicy`, `IdentityVault`: model proponuje, nie autoryzuje. `UNKNOWN` ≠ potwierdzenie.
-- WAV respektuje ustawienie rozmowy lub zadania. Klucze, PII i audio pozostają poza Git, logami i raportami QA. Bez `FLAG_SECURE`. Fizyczny Call/deploy tylko IDLE, za zgodą i z rollbackiem. Bez schedulerów/`WRITE_SECURE_SETTINGS` w MVP.
+- Exact Call/SIM/generacja; STOP/takeover odwołują model/TX. END_CALL po TTS i autoryzacji.
+- Binder UID 2000 i Kadb: weryfikacja tożsamości, lokalne ADB, wymóg IDLE i zgody. Bez Shizuku/`WRITE_SECURE_SETTINGS`.
+- Parowanie kodem jednorazowym przez prywatne powiadomienie lub ręczne pole; bez logowania kluczy/kodów. Reboot może wymagać zgody.
+- Model proponuje, nie autoryzuje. Notatki szyfrowane, z możliwością wyłączenia i filtrowaniem sekretów.
+- WAV, PII i tokeny poza Git/logami; nagrania zależą od wyboru użytkownika. Bez `FLAG_SECURE`, automatów dzwoniących, schedulerów i Actions.
