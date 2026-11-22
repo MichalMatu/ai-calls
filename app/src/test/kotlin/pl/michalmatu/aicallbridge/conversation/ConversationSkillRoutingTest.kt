@@ -38,6 +38,19 @@ class ConversationSkillRoutingTest {
         assertTrue(goal.selectedIds.contains("Clarification"))
     }
 
+    @Test fun englishContextualRoutingSelectsMessageAndClarification() {
+        val result = ConversationSkillRouter.route(
+            default.snapshot(), SkillLoadingMode.CONTEXTUAL,
+            ConversationDirection.OUTGOING,
+            "Please take a message and clarify the corrected appointment")
+        assertTrue(result.selectedIds.contains("MessageCapture"))
+        assertTrue(result.selectedIds.contains("Clarification"))
+        val generic = ConversationSkillRouter.route(
+            default.snapshot(), SkillLoadingMode.CONTEXTUAL,
+            ConversationDirection.UNSPECIFIED, "Discuss the weather")
+        assertEquals(listOf("ConversationStyle", "NaturalClosure"), generic.selectedIds)
+    }
+
     @Test fun disabledInstructionsStayDisabledAndPinnedRevisionsRemainUnchanged() {
         val library = default.copyActive("AB").reviseSkill(
             "ConversationStyle", "Wypowiadaj neutralne słowo KASZTAN.")

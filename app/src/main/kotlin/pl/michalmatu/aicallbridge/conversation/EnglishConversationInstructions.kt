@@ -75,9 +75,10 @@ internal object EnglishConversationInstructions {
         val extraRules = settings.additionalPermissionRules?.let { "Additional user rules: $it\n" }.orEmpty()
         val style = settings.spokenReplyStyle?.let { "Spoken reply guidance: $it\n" }.orEmpty()
         val skills = preparation.skills.sortedBy { it.name }
-            .joinToString("\n") { "- ${it.title}: ${it.guidance(preparation.direction)}" }
+            .joinToString("\n") { EnglishSkillGuidance.skill(it, preparation.direction) }
             .ifBlank { "No additional dialogue guidance. The base role applies." }
-        val extensions = preparation.skillSnapshot?.instructions().orEmpty().ifBlank { "No additional modules." }
+        val extensions = preparation.skillSnapshot?.let(EnglishSkillGuidance::snapshot)
+            .orEmpty().ifBlank { "No additional modules." }
         val fields = preparation.dataFields.sortedBy { it.name }.joinToString { it.name }.ifBlank { "none" }
         return """
             ROLE: $role

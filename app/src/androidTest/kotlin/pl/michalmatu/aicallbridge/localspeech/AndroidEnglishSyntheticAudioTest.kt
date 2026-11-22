@@ -53,6 +53,9 @@ class AndroidEnglishSyntheticAudioTest {
             val pcm = checkNotNull(pcmValue.get()) { "english_local_tts_empty" }
             assertTrue("english_pcm_unexpectedly_short", pcm.size > 8_000)
             assertEquals("english_pcm_alignment", 0, pcm.size % 2)
+            instrumentation.sendStatus(2, android.os.Bundle().apply {
+                putString("stream", "\nEN_SYNTHETIC_TTS_PCM16_BYTES=" + pcm.size + "\n")
+            })
             println("EN_SYNTHETIC_TTS_PCM16_BYTES=" + pcm.size)
 
             val done = CountDownLatch(1)
@@ -105,10 +108,17 @@ class AndroidEnglishSyntheticAudioTest {
                 val recognized = checkNotNull(sttResult.get()) { "english_stt_no_transcript" }
                 assertTrue("english_stt_empty_transcript", recognized.isNotBlank())
                 val normalized = recognized.uppercase(Locale.US)
-                println("EN_SYNTHETIC_STT_WORD_COUNT=" + recognized.split(Regex("\\s+")).size)
-                println("EN_SYNTHETIC_STT_PURPLE=" + normalized.contains("PURPLE"))
-                println("EN_SYNTHETIC_STT_CODE_EXACT=" + normalized.contains("KOD-WRZOS-47"))
-                println("EN_SYNTHETIC_AUDIO_TECHNICAL_PASS=true")
+                val metrics = listOf(
+                    "EN_SYNTHETIC_STT_WORD_COUNT" to recognized.split(Regex("\\s+")).size.toString(),
+                    "EN_SYNTHETIC_STT_PURPLE" to normalized.contains("PURPLE").toString(),
+                    "EN_SYNTHETIC_STT_CODE_EXACT" to normalized.contains("KOD-WRZOS-47").toString(),
+                    "EN_SYNTHETIC_AUDIO_TECHNICAL_PASS" to "true",
+                )
+                metrics.forEach { (key, value) ->
+                    instrumentation.sendStatus(2, android.os.Bundle().apply {
+                        putString("stream", "\n" + key + "=" + value + "\n")
+                    })
+                }
             } finally {
                 instrumentation.runOnMainSync { input.close() }
             }

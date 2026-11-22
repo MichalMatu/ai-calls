@@ -33,11 +33,13 @@ internal object ConversationSkillRouter {
         val started = System.nanoTime()
         val context = (goal + " " + opening).lowercase(Locale.ROOT)
         val messageRelevant = direction == ConversationDirection.INCOMING ||
-            listOf("wiadomo", "notatk", "przekaż", "przekaz", "zapisz", "kontakt")
+            listOf("wiadomo", "notatk", "przekaż", "przekaz", "zapisz", "kontakt",
+                "message", "note", "record", "relay", "pass along", "contact")
                 .any { context.contains(it) }
         val clarifyRelevant = direction == ConversationDirection.INCOMING ||
             listOf("korekt", "popraw", "niejasn", "doprecyz", "wyjaś",
-                "wyjas", "dopyt", "brakuj", "pytan")
+                "wyjas", "dopyt", "brakuj", "pytan",
+                "correct", "clarif", "confus", "explain", "missing", "unclear")
                 .any { context.contains(it) }
         val filtered = if (mode == SkillLoadingMode.ALL_ACTIVE) snapshot.entries else
             snapshot.entries.filter { entry ->

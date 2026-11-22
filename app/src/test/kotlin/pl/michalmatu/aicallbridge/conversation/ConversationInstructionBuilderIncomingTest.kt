@@ -104,6 +104,29 @@ class ConversationInstructionBuilderIncomingTest {
         assertFalse(compiled.contains(ConversationReplyProtocol.FIELD_INSTRUCTION))
     }
 
+    @Test fun englishBuiltinSkillsAreEnglishWithoutRewritingCustomInstructions() {
+        val skills = ConversationSkillLibrary.defaults().snapshot("formal")
+        val incoming = ConversationPreparation.incoming().withSkillSnapshot(skills)
+        val prompt = ConversationInstructionBuilder.build(incoming, "Take a message.",
+            ConversationResponseFormat.TOOL_REPLY, "en-US")
+        assertTrue(prompt.contains("Speaking style"))
+        assertTrue(prompt.contains("Use a formal, courteous and precise tone"))
+        assertTrue(prompt.contains("Taking messages"))
+        assertTrue(prompt.contains("After a clear farewell, propose end_call"))
+        assertTrue(prompt.contains("The app already introduced the assistant"))
+        assertFalse(prompt.contains("Styl wypowiedzi"))
+        assertFalse(prompt.contains("Ustal sens sprawy"))
+        assertFalse(prompt.contains("Powitanie aplikacji przedstawiło już rolę"))
+
+        val custom = ConversationSkillLibrary.defaults().copyActive("Custom EN")
+            .reviseSkill("Clarification", "OWNER_PRIVATE_RULE_KEEP_UNCHANGED")
+        val customPrompt = ConversationInstructionBuilder.build(
+            ConversationPreparation.incoming().withSkillSnapshot(custom.snapshot()),
+            "Take a message.", ConversationResponseFormat.TOOL_REPLY, "en-US")
+        assertTrue(customPrompt.contains("OWNER_PRIVATE_RULE_KEEP_UNCHANGED"))
+        assertFalse(customPrompt.contains("Ask only for genuinely unclear or missing information"))
+    }
+
     @Test fun completionInstructionIsNotInjectedIntoIncomingOrPlainSpeech() {
         val incoming = ConversationInstructionBuilder.build(
             ConversationPreparation.incoming(), "Przyjmij wiadomość.",
