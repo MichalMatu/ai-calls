@@ -35,6 +35,7 @@ import pl.michalmatu.aicallbridge.ui.UiChromeActivity
 import pl.michalmatu.aicallbridge.ui.modelvoice.ModelVoiceGenerationDialog
 import pl.michalmatu.aicallbridge.ui.modelvoice.ModelVoiceModelDialog
 import pl.michalmatu.aicallbridge.ui.modelvoice.ModelVoiceVoiceOptionsView
+import pl.michalmatu.aicallbridge.ui.modelvoice.ModelVoiceEngineDialog
 import pl.michalmatu.aicallbridge.ui.modelvoice.ModelVoiceLanguageDialog
 import pl.michalmatu.aicallbridge.ui.modelvoice.ModelVoiceInputDialog
 import pl.michalmatu.aicallbridge.ui.UiDesign
@@ -242,13 +243,15 @@ internal class ModelVoiceSettings(
     private fun showEnginePicker() {
         val options = ModelVoiceEnginePickerPresenter.present(
             engineIds, engineLabels, draft) { activity.getString(R.string.mv_engine_missing) }
-        AlertDialog.Builder(activity).setTitle(R.string.mv_engine)
-            .setSingleChoiceItems(options.labels.toTypedArray(), options.selected) { dialog, position ->
-                if (save(draft.copy(output = SpeechOutputId.ANDROID_TTS_PL,
-                        ttsEnginePackage = options.ids[position], voiceId = null))) {
-                    dialog.dismiss(); showVoicePicker()
-                }
-            }.setNegativeButton(android.R.string.cancel) { _, _ -> showVoicePicker() }.show()
+        ModelVoiceEngineDialog(
+            activity = activity,
+            options = options,
+            onSelectEngine = { packageName ->
+                save(draft.copy(output = SpeechOutputId.ANDROID_TTS_PL,
+                    ttsEnginePackage = packageName, voiceId = null))
+            },
+            onReturnToVoices = ::showVoicePicker,
+        ).show()
     }
 
     private fun loadVoices() {
