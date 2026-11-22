@@ -16,7 +16,6 @@ import android.speech.RecognitionSupportCallback
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import java.io.OutputStream
-import java.util.Locale
 
 @TargetApi(34)
 internal class OnDeviceSpeechInput(
@@ -285,8 +284,5 @@ internal class OnDeviceSpeechInput(
     }
 
     private fun isSelectedLanguage(tag: String): Boolean =
-        Locale.forLanguageTag(tag).language.equals(
-            Locale.forLanguageTag(languageTag).language,
-            ignoreCase = true,
-        )
+        OfflineSpeechLanguagePolicy.matchesInstalled(languageTag, tag)
 }
