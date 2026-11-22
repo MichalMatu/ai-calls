@@ -209,13 +209,7 @@ internal class ModelVoiceSettings(
                 } else {
                     // English Parakeet, Gemma Audio and Polish Piper are unqualified.
                     // Language selection resets only incompatible engine choices.
-                    val next = draft.copy(languageTag = target,
-                        input = if (target == "en-US") SpeechInputId.ANDROID_STT else draft.input,
-                        output = if (target == "en-US") SpeechOutputId.ANDROID_TTS_PL else draft.output,
-                        voiceId = null,
-                        ttsEnginePackage = if (target == "en-US" &&
-                            draft.effectiveTtsEnginePackage == PiperServiceContract.PACKAGE)
-                            null else draft.ttsEnginePackage)
+                    val next = ModelVoiceSelectionPolicy.forLanguage(draft, target)
                     if (save(next)) dialog.dismiss()
                 }
             }.setNegativeButton(android.R.string.cancel, null).show()
