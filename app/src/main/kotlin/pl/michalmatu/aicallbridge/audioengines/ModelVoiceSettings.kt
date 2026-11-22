@@ -23,6 +23,7 @@ import android.widget.Toast
 import java.util.concurrent.Executors
 import java.util.Locale
 import pl.michalmatu.aicallbridge.R
+import pl.michalmatu.aicallbridge.presentation.modelvoice.ModelVoiceProfileController
 import pl.michalmatu.aicallbridge.textagent.Gemma4LiteRtTextBackendFactory
 import pl.michalmatu.aicallbridge.textagent.LanguageModelCatalog
 import pl.michalmatu.aicallbridge.textagent.LanguageModelTransferService
@@ -39,8 +40,8 @@ internal class ModelVoiceSettings(
     private val changed: () -> Unit,
 ) : AutoCloseable {
     private val store = AudioEngineProfileStore(activity)
-    var draft = store.load() ?: AudioEngineProfile.STABLE
-        private set
+    private val profiles = ModelVoiceProfileController(store::load, store::save)
+    val draft: AudioEngineProfile get() = profiles.draft
     private val probe = ModelCompatibilityProbe(activity)
     private var active = false
     private var checking = false
@@ -123,22 +124,28 @@ internal class ModelVoiceSettings(
         }
 
     private fun save(profile: AudioEngineProfile): Boolean {
-        if (profile == draft && store.load() == profile) return true
-        AudioEngineRegistry.incompatibility(profile)?.let { notifyError(it); return false }
-        if (!store.save(profile)) {
-            Toast.makeText(activity, R.string.eng_ui_save_error, Toast.LENGTH_SHORT).show(); return false
+        when (val result = profiles.select(profile)) {
+            ModelVoiceProfileController.SaveResult.Unchanged -> return true
+            is ModelVoiceProfileController.SaveResult.Rejected -> {
+                notifyError(result.reason)
+                return false
+            }
+            ModelVoiceProfileController.SaveResult.WriteFailed -> {
+                Toast.makeText(activity, R.string.eng_ui_save_error, Toast.LENGTH_SHORT).show()
+                return false
+            }
+            is ModelVoiceProfileController.SaveResult.Saved -> {
+                tts?.stop()
+                probe.close(); checking = false; lastAttempt = null; checkResult = null
+                if (result.engineChanged) {
+                    previewWhenReady = false
+                    pendingPreviewVoice = null
+                    if (active) loadVoices()
+                }
+                refresh(); changed()
+                return true
+            }
         }
-        val engineChanged = draft.effectiveTtsEnginePackage != profile.effectiveTtsEnginePackage ||
-            draft.languageTag != profile.languageTag
-        draft = profile; tts?.stop()
-        probe.close(); checking = false; lastAttempt = null; checkResult = null
-        if (engineChanged) {
-            previewWhenReady = false
-            pendingPreviewVoice = null
-            if (active) loadVoices()
-        }
-        refresh(); changed()
-        return true
     }
 
     fun selectModel(id: DialogueModelId, custom: String? = null): Boolean =
@@ -577,14 +584,10 @@ internal class ModelVoiceSettings(
 
     private fun notifyError(code: String) = Toast.makeText(activity, reason(activity, code), Toast.LENGTH_LONG).show()
     fun syncSavedProfile() {
-        val current = store.load() ?: return
-        if (current != draft) {
-            val engineChanged = current.effectiveTtsEnginePackage != draft.effectiveTtsEnginePackage ||
-                current.languageTag != draft.languageTag
-            probe.close(); checking = false; lastAttempt = null; checkResult = null
-            draft = current
-            if (engineChanged && active) loadVoices()
-        }
+        val change = profiles.pendingExternalChange() ?: return
+        probe.close(); checking = false; lastAttempt = null; checkResult = null
+        profiles.acceptExternalChange(change)
+        if (change.engineChanged && active) loadVoices()
     }
     fun resume() { active = true; syncSavedProfile(); loadVoices(); refresh() }
     fun pause() {
