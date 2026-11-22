@@ -25,6 +25,7 @@ import pl.michalmatu.aicallbridge.presentation.modelvoice.ModelVoiceEnginePicker
 import pl.michalmatu.aicallbridge.presentation.modelvoice.ModelVoiceReadinessPresenter
 import pl.michalmatu.aicallbridge.presentation.modelvoice.ModelVoiceVerificationController
 import pl.michalmatu.aicallbridge.presentation.modelvoice.ModelVoiceSpeechPickerPresenter
+import pl.michalmatu.aicallbridge.presentation.modelvoice.ModelVoiceModelPickerPresenter
 import pl.michalmatu.aicallbridge.presentation.modelvoice.ModelVoiceTtsAsyncState
 import pl.michalmatu.aicallbridge.textagent.Gemma4LiteRtTextBackendFactory
 import pl.michalmatu.aicallbridge.textagent.LanguageModelCatalog
@@ -33,6 +34,7 @@ import pl.michalmatu.aicallbridge.textagent.UserLiteRtModelStore
 import pl.michalmatu.aicallbridge.textagent.LiteRtModelContainer
 import pl.michalmatu.aicallbridge.ui.UiChromeActivity
 import pl.michalmatu.aicallbridge.ui.modelvoice.ModelVoiceGenerationDialog
+import pl.michalmatu.aicallbridge.ui.modelvoice.ModelVoiceModelDialog
 import pl.michalmatu.aicallbridge.ui.modelvoice.ModelVoiceLanguageDialog
 import pl.michalmatu.aicallbridge.ui.modelvoice.ModelVoiceInputDialog
 import pl.michalmatu.aicallbridge.ui.UiDesign
@@ -176,20 +178,17 @@ internal class ModelVoiceSettings(
             library.isInstalled(model) && LiteRtModelContainer.hasHeader(file) &&
                 ModelCompatibilityStore(activity).verified(file, false)
         }
-        val builtIn = DialogueModelId.builtInChoices
-        val labels = builtIn.map { LanguageModelCatalog[it].title } + imported.map { it.title }
-        val selected = if (draft.dialogue == DialogueModelId.USER_LITERT)
-            imported.indexOfFirst { it.id == draft.customModelId }.takeIf { it >= 0 }
-                ?.plus(builtIn.size) ?: -1 else builtIn.indexOf(draft.dialogue)
-        AlertDialog.Builder(activity).setTitle(R.string.models_ui_dialogue_heading)
-            .setSingleChoiceItems(labels.toTypedArray(), selected) { dialog, position ->
-                val saved = if (position < builtIn.size) selectModel(builtIn[position])
-                    else selectModel(DialogueModelId.USER_LITERT, imported[position - builtIn.size].id)
-                if (saved) dialog.dismiss()
-                else (dialog as AlertDialog).listView.setItemChecked(selected, true)
-            }
-            .setNeutralButton(R.string.mv_manage_files) { _, _ -> manageFiles() }
-            .setNegativeButton(android.R.string.cancel, null).show()
+        val picker = ModelVoiceModelPickerPresenter.present(
+            draft = draft,
+            builtIn = DialogueModelId.builtInChoices.map { it to LanguageModelCatalog[it].title },
+            imported = imported.map { it.id to it.title },
+        )
+        ModelVoiceModelDialog(
+            activity = activity,
+            picker = picker,
+            selectModel = ::selectModel,
+            manageFiles = manageFiles,
+        ).show()
     }
 
     private fun inputTitle(input: SpeechInputId): String = activity.getString(when (input) {
