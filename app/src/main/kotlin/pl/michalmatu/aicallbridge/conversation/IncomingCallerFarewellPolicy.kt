@@ -35,6 +35,7 @@ internal object IncomingCallerFarewellPolicy {
         languageTag: String): ConversationReply =
         if (isUnambiguousGoodbye(callerTranscript))
             ConversationReply(finalSpeech(languageTag),
-                pl.michalmatu.aicallbridge.conversationtools.ConversationToolId.END_CALL)
+                pl.michalmatu.aicallbridge.conversationtools.ConversationToolId.END_CALL,
+                proposal.note)
         else proposal
 }

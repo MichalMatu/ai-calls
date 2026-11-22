@@ -184,9 +184,22 @@ class ConversationReplyProtocolTest {
             """{"reply":"Zapisuję","tool":"save_note"}""",
             """{"reply":"Zapisuję","tool":"save_note","note":""}""",
             """{"reply":"Zapisuję","tool":"save_note","note":"ok","kind":"SEND_EMAIL"}""",
-            """{"reply":"Do widzenia","tool":"end_call","note":"Nie wolno wykonać"}""",
             """{"reply":"Do widzenia","tool":"save_note","note":"ok","number":"+48123123"}"""
         )) assertTrue(runCatching { ConversationReplyProtocol.decode(raw) }.isFailure)
+    }
+
+    @Test fun noteIsIndependentFromToolIncludingFinalGoodbye() {
+        val forNoTool = ConversationReplyProtocol.decode(
+            """{"reply":"Rozumiem.","tool":"none","note":"Spotkanie w środę.","kind":"NOTE"}""")
+        assertNull(forNoTool.tool)
+        assertEquals("Spotkanie w środę.", forNoTool.note?.content)
+        val forEndCall = ConversationReplyProtocol.decode(
+            """{"reply":"Do widzenia.","tool":"end_call","note":"Termin poprawiony na piątek.","kind":"NOTE"}""")
+        assertEquals(ConversationToolId.END_CALL, forEndCall.tool)
+        assertEquals("Termin poprawiony na piątek.", forEndCall.note?.content)
+        assertFalse(forEndCall.toString().contains("Termin poprawiony"))
+        assertEquals("Termin poprawiony na piątek.", IncomingCallerFarewellPolicy.normalizeProposal(
+            "Do widzenia", forEndCall, "pl-PL").note?.content)
     }
 
     private class FakeModel : TextCallAgentBackend {
