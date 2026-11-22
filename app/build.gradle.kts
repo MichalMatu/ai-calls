@@ -11,8 +11,8 @@ android {
         applicationId = "pl.michalmatu.aicallbridge"
         minSdk = 29
         targetSdk = 36
-        versionCode = 2
-        versionName = "0.2.0"
+        versionCode = 3
+        versionName = "0.2.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -21,7 +21,6 @@ android {
     buildTypes {
         getByName("debug") {
             applicationIdSuffix = ".s8lab"
-            versionNameSuffix = "-s8lab"
             // Only the owner's 64-bit Samsung S22+ target. Do not ship
             // x86/x86_64/32-bit native LLM binaries in the test installer.
             ndk { abiFilters += "arm64-v8a" }

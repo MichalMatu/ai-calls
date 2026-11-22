@@ -5,7 +5,7 @@
          Existing debug-only LAN setting remains isolated from release. -->
     <application
         android:usesCleartextTraffic="true"
-        android:label="AI Calls S8 Lab"
+        android:label="AI Calls"
         tools:replace="android:label">
         <!-- No-call, shell-triggered Binder roundtrip verification. -->
         <activity

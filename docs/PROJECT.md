@@ -1,6 +1,6 @@
-# AI Calls — MVP S8 Lab
+# AI Calls — MVP 0.2.1
 
-22.11.2026: `.s8lab`, S22+ / Android 16, GSM via Binder/ADB UID 2000. **Preview, nie produkcja.** Rollback: `s22-gsm-mvp-golden-2026-11-19` (`f0940d51`).
+22.11.2026: testowy APK na S22+ / Android 16, GSM via Binder/ADB UID 2000. **Preview, nie produkcja.** Rollback: `s22-gsm-mvp-golden-2026-11-19` (`f0940d51`).
 
 ## Odbiór
 
