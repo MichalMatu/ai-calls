@@ -1,9 +1,17 @@
 import unittest
 
-from aicall_tools.calls.live_call_readiness import parse_readiness_report
+from aicall_tools.calls.live_call_readiness import (
+    PACKAGE_NAME, PROBE_ACTIVITY, parse_readiness_report,
+)
 
 
 class LiveCallReadinessTest(unittest.TestCase):
+    def test_s8lab_activity_uses_base_namespace_not_application_id_suffix(self):
+        self.assertEqual(
+            f"{PACKAGE_NAME}/pl.michalmatu.aicallbridge.LiveCallReadinessProbeActivity",
+            PROBE_ACTIVITY,
+        )
+
     @staticmethod
     def report(mic="true", host="true", ready="true", reason="none"):
         return "\n".join([

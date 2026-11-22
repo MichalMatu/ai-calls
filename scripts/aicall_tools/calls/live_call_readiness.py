@@ -11,7 +11,7 @@ from typing import Optional
 
 PACKAGE_NAME = "pl.michalmatu.aicallbridge.s8lab"
 
-PROBE_ACTIVITY = f"{PACKAGE_NAME}/.LiveCallReadinessProbeActivity"
+PROBE_ACTIVITY = f"{PACKAGE_NAME}/pl.michalmatu.aicallbridge.LiveCallReadinessProbeActivity"
 REPORT_PATH = "files/live-call-readiness-report.txt"
 DEFAULT_TIMEOUT_SECONDS = 8.0
 
