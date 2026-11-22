@@ -1,13 +1,13 @@
 # AI Calls
 
-An on-device assistant for authorized GSM calls on the Samsung Galaxy S22+ with Android 16. It handles incoming and outgoing calls in Polish and English, with local transcripts and notes.
+An on-device assistant for authorized GSM calls on Samsung S22+ (Android 16), with PL/EN profiles, local transcripts, encrypted notes and WAV recordings.
 
-[Download the S8 Lab test APK](https://github.com/MichalMatu/ai-calls/releases/download/s8lab-preview-ba2a4640/ai-calls-s8lab.apk). This is a preview build, not a qualified production release.
+[Download S8 Lab MVP APK](https://github.com/MichalMatu/ai-calls/releases/download/s8lab-mvp-2026-11-22-c7eff94/ai-calls-s8lab.apk) · [SHA256](https://github.com/MichalMatu/ai-calls/releases/download/s8lab-mvp-2026-11-22-c7eff94/SHA256SUMS.txt). Test preview, not production. PL incoming GSM, notes and WAV verified; EN synthetic speech passed, full EN GSM unverified.
 
 ## Install and set up
 
 1. Open the downloaded APK on the phone and install it. In Android settings, set AI Calls as the default Phone app. Grant microphone and SIM access in **Settings → Permissions and default apps**.
-2. While the phone is idle, open **Settings → GSM audio**. Follow **ADB pairing** to enable Wireless debugging and pair with a code, then tap **Start GSM audio host**.
+2. While idle, open **Settings → GSM audio → Manage pairing**. Enable Wireless debugging, pair by code and reply to the AI Calls notification from the pull-down shade (or enter the code in the app). Tap **Start GSM audio host**.
 3. Open **Model and voice**. Choose **Gemma 4 E2B** or **E4B**, download it and tap **Check compatibility**. Set **AI conversation language** and preview an offline voice. **App language** sets the menu language.
 4. Choose the SIM and mode under **Answering calls**, or start a task from **New outgoing call**. Edit **Conversation instructions** or **AI Agent → Receptionist behavior**. Use the **Offline laboratory** for synthetic tests.
 
