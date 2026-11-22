@@ -2,7 +2,7 @@
 
 An on-device assistant for authorized GSM calls on Samsung S22+ (Android 16), with PL/EN profiles, local transcripts, encrypted notes and WAV recordings.
 
-[Download S8 Lab MVP APK](https://github.com/MichalMatu/ai-calls/releases/download/s8lab-mvp-2026-11-22-c7eff94/ai-calls-s8lab.apk) · [SHA256](https://github.com/MichalMatu/ai-calls/releases/download/s8lab-mvp-2026-11-22-c7eff94/SHA256SUMS.txt). Test preview, not production. PL incoming GSM, notes and WAV verified; EN synthetic speech passed, full EN GSM unverified.
+[Download AI Calls 0.2.1](https://github.com/MichalMatu/ai-calls/releases/download/v0.2.1/ai-calls-v0.2.1.apk) · [SHA256](https://github.com/MichalMatu/ai-calls/releases/download/v0.2.1/SHA256SUMS.txt). Test preview, not production. PL incoming GSM, notes and WAV verified; EN synthetic speech passed, full EN GSM unverified.
 
 ## Install and set up
 

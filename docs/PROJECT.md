@@ -9,7 +9,7 @@
 - Nagrania WAV: odsłuch potwierdzony przez użytkownika.
 - EN: `en-US` i syntetyczne STT/TTS PASS, fizyczne GSM EN nieodebrane.
 - Outgoing: wcześniejszy test 5 tur i END_CALL PASS, bez kwalifikacji bieżącego APK.
-- QA: `454f766` — build/lint/JVM/501 Python PASS; `c7eff94` — prywatna analiza GSM/notatki PASS.
+- QA: `454f766` — PL rozmowa/notatki; `c7eff94` — analiza GSM; `4ea08c8` — pełne QA (JVM/lint/501 Python), build oraz instalacja 0.2.1 na S22+ PASS.
 
 ## Następny sprint
 
