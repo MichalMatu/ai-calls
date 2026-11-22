@@ -1,6 +1,7 @@
 package pl.michalmatu.aicallbridge.localspeech
 
 import android.content.Intent
+import android.os.Bundle
 import android.media.AudioFormat
 import android.os.ParcelFileDescriptor
 import android.speech.RecognitionSupport
@@ -35,6 +36,13 @@ class AndroidEnglishRecognitionSupportProbeTest {
         putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
     }
 
+
+    private fun report(key: String, value: Any) {
+        instrumentation.sendStatus(2, Bundle().apply {
+            putString("stream", "\n" + key + "=" + value.toString() + "\n")
+        })
+    }
+
     private fun status(tag: String, recognizer: SpeechRecognizer, request: Intent) {
         val done = CountDownLatch(1)
         val result = AtomicReference<RecognitionSupport?>()
@@ -61,13 +69,13 @@ class AndroidEnglishRecognitionSupportProbeTest {
         fun english(list: List<String>) = list.filter {
             Locale.forLanguageTag(it).language.equals("en", ignoreCase = true)
         }
-        println("EN_SUPPORT_" + tag + "_ERROR=" + (error.get() ?: "none"))
-        println("EN_SUPPORT_" + tag + "_INSTALLED_EXACT=" + matches(installed))
-        println("EN_SUPPORT_" + tag + "_INSTALLED_ENGLISH_COUNT=" + english(installed).size)
-        println("EN_SUPPORT_" + tag + "_SUPPORTED_EXACT=" + matches(supported))
-        println("EN_SUPPORT_" + tag + "_PENDING_EXACT=" + matches(pending))
-        println("EN_SUPPORT_" + tag + "_INSTALLED_TOTAL=" + installed.size)
-        println("EN_SUPPORT_" + tag + "_AVAILABLE=true")
+        report("EN_SUPPORT_" + tag + "_ERROR", error.get() ?: "none")
+        report("EN_SUPPORT_" + tag + "_INSTALLED_EXACT", matches(installed))
+        report("EN_SUPPORT_" + tag + "_INSTALLED_ENGLISH_COUNT", english(installed).size)
+        report("EN_SUPPORT_" + tag + "_SUPPORTED_EXACT", matches(supported))
+        report("EN_SUPPORT_" + tag + "_PENDING_EXACT", matches(pending))
+        report("EN_SUPPORT_" + tag + "_INSTALLED_TOTAL", installed.size)
+        report("EN_SUPPORT_" + tag + "_AVAILABLE", true)
     }
 
     @Test fun englishSupportForActualPipeAndBaseIntentIsKnown() {
