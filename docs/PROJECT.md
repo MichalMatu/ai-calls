@@ -17,4 +17,6 @@ Nowy czat: instalacja, zgody, kod ADB z szuflady powiadomień, host GSM, zachowa
 
 ## Otwarte
 
-Fizyczny EN i bieżący outgoing; podpis/IPC pakietu produkcyjnego. Strojenie Gemmy/kodów po MVP. SIP/Realtime odłożone. Bez schedulerów, Actions i Shizuku.
+Fizyczny EN i bieżący outgoing; podpis/IPC pakietu produkcyjnego. Strojenie Gemmy/kodów po MVP. SIP/Realtime odłożone.
+
+**WSTRZYMANE:** Shizuku, GitHub Actions, schedulery, `WRITE_SECURE_SETTINGS`.
