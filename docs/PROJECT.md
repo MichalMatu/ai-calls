@@ -21,4 +21,4 @@ Testowy pakiet `.s8lab` na S22+/Android 16: Binder UID 2000, GSM Incoming/Outgoi
 
 Pełna kwalifikacja GSM na najnowszym SHA, podpis i IPC APK release. SIP/PJSUA2 po odbiorze GSM: prototyp w tagu `archive/sip-voip-s22-2026-11-21`. [Dalsze ścieżki](modules/CONVERSATION.md).
 
-**Wstrzymane:** Shizuku, Actions, schedulery, `WRITE_SECURE_SETTINGS`.
+**WSTRZYMANE:** Shizuku, Actions, schedulery, `WRITE_SECURE_SETTINGS`.
