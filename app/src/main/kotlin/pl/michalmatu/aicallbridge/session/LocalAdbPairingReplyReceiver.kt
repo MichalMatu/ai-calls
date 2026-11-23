@@ -8,7 +8,7 @@ import android.content.Intent
 /** Notification direct-reply entrypoint; strictly private, short-lived and user initiated. */
 class LocalAdbPairingReplyReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        if (context.packageName != GsmShellMediaProtocol.S8_PACKAGE ||
+        if (!GsmShellMediaProtocol.supportedPackage(context.packageName) ||
             intent.action != LocalAdbPairingNotification.ACTION_REPLY) return
         if (!LocalAdbPairingNotification.consume(
                 context, intent.getStringExtra(LocalAdbPairingNotification.EXTRA_TOKEN))) return
