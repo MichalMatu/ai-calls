@@ -6,6 +6,20 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 
 public final class GsmShellMediaProtocolTest {
+    @Test public void productionAndLabAreOnlySupportedPackageIdentities() {
+        assertTrue(GsmShellMediaProtocol.supportedPackage(
+            "pl.michalmatu.aicallbridge"));
+        assertTrue(GsmShellMediaProtocol.supportedPackage(
+            "pl.michalmatu.aicallbridge.s8lab"));
+        assertFalse(GsmShellMediaProtocol.supportedPackage(
+            "pl.michalmatu.aicallbridge.malicious"));
+        assertFalse(GsmShellMediaProtocol.supportedPackage(null));
+        org.junit.Assert.assertEquals("pl.michalmatu.aicallbridge.gsmbinder",
+            GsmShellMediaProtocol.authorityFor(GsmShellMediaProtocol.APP_PACKAGE));
+        org.junit.Assert.assertThrows(SecurityException.class,
+            () -> GsmShellMediaProtocol.authorityFor("com.other.app"));
+    }
+
     @Test public void acceptsOnlyVerifiedShellOnClientSide() {
         assertTrue(GsmShellMediaProtocol.mayTrustShell(2000));
         for (int uid : new int[] {0, 1000, 1001, 10_123, 20_000}) {
