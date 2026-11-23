@@ -534,24 +534,31 @@ class ConversationSkillLabActivity : UiChromeActivity(AppTab.SETTINGS) {
 
     private fun startDialogue(presetId: String, adaptive: Boolean) {
         val chosen = caseEntries.getOrNull(casePicker.selectedItemPosition - 1)
-        if (adaptive && chosen == null) {
-            showError(getString(R.string.lab_adaptive_select_case)); return
-        }
-        val budgetText = contextBudgetInput.text.toString().trim()
-        val budget = budgetText.toIntOrNull()
-        if (budgetText.isNotEmpty() && (budget == null || budget <= 0)) {
-            (contextBudgetInput.parent as View).visibility = View.VISIBLE
-            contextBudgetInput.error = getString(R.string.lab_context_invalid)
-            contextBudgetInput.requestFocus()
-            contextBudgetInput.post { contextBudgetInput.requestRectangleOnScreen(
-                android.graphics.Rect(0, 0, contextBudgetInput.width, contextBudgetInput.height), true) }
-            return
+        val selection = SkillLabStartPolicy.decide(
+            adaptive = adaptive,
+            hasCase = chosen != null,
+            contextBudgetText = contextBudgetInput.text.toString(),
+            contextualSkills = skillModePicker.selectedItemPosition == 1,
+        )
+        val accepted = when (selection) {
+            SkillLabStartPolicy.Decision.CaseRequired -> {
+                showError(getString(R.string.lab_adaptive_select_case)); return
+            }
+            SkillLabStartPolicy.Decision.InvalidBudget -> {
+                (contextBudgetInput.parent as View).visibility = View.VISIBLE
+                contextBudgetInput.error = getString(R.string.lab_context_invalid)
+                contextBudgetInput.requestFocus()
+                contextBudgetInput.post { contextBudgetInput.requestRectangleOnScreen(
+                    android.graphics.Rect(0, 0, contextBudgetInput.width, contextBudgetInput.height), true) }
+                return
+            }
+            is SkillLabStartPolicy.Decision.Accepted -> selection
         }
         val test = chosen?.selected()
+        val budget = accepted.contextTokenBudget
+        val loadingMode = accepted.skillLoadingMode
         sessionFactory.selectedCase = test
         sessionFactory.contextTokenBudget = budget
-        val loadingMode = if (skillModePicker.selectedItemPosition == 1)
-            SkillLoadingMode.CONTEXTUAL else SkillLoadingMode.ALL_ACTIVE
         sessionFactory.skillLoadingMode = loadingMode
         // Snapshot one observer per session, rejecting late telemetry from a stopped run.
         val thisRun = ++diagnosticRunId
