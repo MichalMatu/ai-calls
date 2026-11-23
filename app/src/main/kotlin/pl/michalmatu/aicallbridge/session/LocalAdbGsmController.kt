@@ -21,7 +21,7 @@ internal class LocalAdbGsmController(private val context: Context) {
         CALL_BUSY, BOOTSTRAP_FAILED, ADB_UNAVAILABLE, NOT_DISCOVERED }
 
     private fun allowed(): Boolean =
-        context.packageName == GsmShellMediaProtocol.S8_PACKAGE
+        GsmShellMediaProtocol.supportedPackage(context.packageName)
 
     /** Read-only diagnostics: saved host identity is NOT proof of pairing. */
     fun inspect(): LocalAdbGsmStatus.Snapshot {
@@ -104,11 +104,11 @@ internal class LocalAdbGsmController(private val context: Context) {
                 if (!LocalAdbGsmPolicy.callIdle(
                         checked("dumpsys telephony.registry"),
                         checked("dumpsys audio"))) return Outcome.CALL_BUSY
-                val installed = checked("pm path pl.michalmatu.aicallbridge.s8lab")
+                val installed = checked("pm path ${context.packageName}")
                 if (!installed.lineSequence().any { it.startsWith("package:") }) return Outcome.WRONG_DEVICE
-                if (LocalAdbGsmPolicy.hostRegistered(checked(LocalAdbGsmPolicy.STATUS)))
+                if (LocalAdbGsmPolicy.hostRegistered(checked(LocalAdbGsmPolicy.statusFor(context.packageName))))
                     return Outcome.ALREADY_READY
-                checked(LocalAdbGsmPolicy.START)
+                checked(LocalAdbGsmPolicy.startFor(context.packageName))
                 repeat(15) {
                     if (LocalAdbGsmPolicy.hostRegistered(checked(LocalAdbGsmPolicy.STATUS)))
                         return Outcome.READY
