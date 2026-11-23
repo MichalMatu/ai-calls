@@ -5,7 +5,8 @@ from tempfile import TemporaryDirectory
 import unittest
 
 from scripts.aicall_tools.diagnostics.docs_check import (
-    TOTAL_MAX_BYTES, TOTAL_WARN_BYTES, AGENTS_MAX_BYTES, PROJECT_MAX_BYTES, audit, check,
+    TOTAL_MAX_BYTES, TOTAL_WARN_BYTES, AGENTS_MAX_BYTES, PROJECT_MAX_BYTES,
+    UI_REFERENCE_MAX_BYTES, audit, check,
 )
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -73,6 +74,18 @@ class DocumentationContractTest(unittest.TestCase):
                     any(name in e and "file budget exceeded" in e for e in check(root)),
                     name,
                 )
+
+    def test_full_ui_reference_has_a_finite_explicit_budget(self):
+        with TemporaryDirectory() as d:
+            root = Path(d)
+            self.fixture(root)
+            reference = root / "docs/architecture/UI_SCREEN_MAP.md"
+            reference.write_text("# UI inventory\\n" + "x" * UI_REFERENCE_MAX_BYTES)
+            errors = check(root)
+            self.assertTrue(any(
+                "docs/architecture/UI_SCREEN_MAP.md: file budget exceeded" in e
+                for e in errors
+            ))
 
     def test_total_budget_rejects_bloat(self):
         with TemporaryDirectory() as d:

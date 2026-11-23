@@ -9,6 +9,7 @@ import re
 DOCS = (
     "docs/README.md", "docs/PROJECT.md",
     "docs/architecture/SYSTEM.md", "docs/architecture/SECURITY.md",
+    "docs/architecture/UI_SCREEN_MAP.md",
     "docs/modules/CONVERSATION.md", "docs/modules/INCOMING_OUTGOING.md",
     "docs/modules/UI.md",
     "docs/operations/DEVELOPMENT.md", "docs/operations/LOCAL_AGENT.md",
@@ -16,10 +17,13 @@ DOCS = (
 )
 REQUIRED = ("README.md", "AGENTS.md", *DOCS)
 
-TOTAL_WARN_BYTES = 6 * 1024
-TOTAL_MAX_BYTES = 8 * 1024
+# Short active docs stay capped at 2 KiB per file. The source-derived,
+# manifest-complete Compose reference gets a separate explicit 14 KiB limit.
+TOTAL_WARN_BYTES = 18 * 1024
+TOTAL_MAX_BYTES = 24 * 1024
 FILE_WARN_BYTES = 1 * 1024
 FILE_MAX_BYTES = 2 * 1024
+UI_REFERENCE_MAX_BYTES = 14 * 1024
 AGENTS_MAX_BYTES = 1 * 1024
 PROJECT_MAX_BYTES = 2 * 1024
 
@@ -119,7 +123,9 @@ def audit(root: Path) -> tuple[list[str], list[str], int]:
         rel = file.relative_to(root).as_posix()
         size = file.stat().st_size
         cap = (AGENTS_MAX_BYTES if rel == "AGENTS.md" else
-               PROJECT_MAX_BYTES if rel == "docs/PROJECT.md" else FILE_MAX_BYTES)
+               PROJECT_MAX_BYTES if rel == "docs/PROJECT.md" else
+               UI_REFERENCE_MAX_BYTES if rel == "docs/architecture/UI_SCREEN_MAP.md"
+               else FILE_MAX_BYTES)
         if size > cap:
             errors.append(f"{rel}: file budget exceeded: {size} > {cap} bytes")
         elif size > FILE_WARN_BYTES:
