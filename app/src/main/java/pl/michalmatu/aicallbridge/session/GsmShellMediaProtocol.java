@@ -11,6 +11,7 @@ package pl.michalmatu.aicallbridge.session;
 public final class GsmShellMediaProtocol {
     public static final String SOCKET_NAME = "aicalls_s8_gsm_shell_v1";
     public static final String S8_PACKAGE = "pl.michalmatu.aicallbridge.s8lab";
+    public static final String APP_PACKAGE = "pl.michalmatu.aicallbridge";
     public static final int SHELL_UID = 2000;
     public static final int MAGIC = 0x41434731; // ACG1
     public static final int OK = 0x31;
@@ -21,6 +22,17 @@ public final class GsmShellMediaProtocol {
     public static final int SAMPLE_RATE_HZ = 16_000;
 
     private GsmShellMediaProtocol() {}
+
+    /** Explicit package allowlist; never use arbitrary ADB or shell targets. */
+    public static boolean supportedPackage(String packageName) {
+        return S8_PACKAGE.equals(packageName) || APP_PACKAGE.equals(packageName);
+    }
+
+    public static String authorityFor(String packageName) {
+        if (!supportedPackage(packageName))
+            throw new SecurityException("gsm_shell_unsupported_package");
+        return packageName + ".gsmbinder";
+    }
 
     public static boolean mayTrustShell(int peerUid) {
         return peerUid == SHELL_UID;
