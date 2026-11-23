@@ -6,7 +6,7 @@ public enum CallMediaBackendMode {
     UNAVAILABLE;
 
     public static CallMediaBackendMode forPackage(String packageName) {
-        return GsmShellMediaProtocol.S8_PACKAGE.equals(packageName)
+        return GsmShellMediaProtocol.supportedPackage(packageName)
             ? GSM_SHELL_ADB : UNAVAILABLE;
     }
 }
