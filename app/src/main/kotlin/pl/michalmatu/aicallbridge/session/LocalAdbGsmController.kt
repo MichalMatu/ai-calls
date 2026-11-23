@@ -110,7 +110,7 @@ internal class LocalAdbGsmController(private val context: Context) {
                     return Outcome.ALREADY_READY
                 checked(LocalAdbGsmPolicy.startFor(context.packageName))
                 repeat(15) {
-                    if (LocalAdbGsmPolicy.hostRegistered(checked(LocalAdbGsmPolicy.STATUS)))
+                    if (LocalAdbGsmPolicy.hostRegistered(checked(LocalAdbGsmPolicy.statusFor(context.packageName))))
                         return Outcome.READY
                     Thread.sleep(300L)
                 }
