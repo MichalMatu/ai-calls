@@ -1,7 +1,7 @@
 package pl.michalmatu.aicallbridge.conversation
 
 /**
- * Pure Lab run validation and routing selection. No Activity, persistence,
+ * Pure Lab run validation and routing selection. No UI rendering, persistence,
  * native model or external call effects belong in this decision.
  */
 internal object SkillLabStartPolicy {
