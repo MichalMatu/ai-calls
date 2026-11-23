@@ -15,9 +15,15 @@ class ModelVoiceVoiceOptionsViewContract(unittest.TestCase):
             "if (save(draft.copy(voiceId = id))) voiceDialog?.dismiss()",
             "onPreview = ::preview",
             "private fun preview(voiceId:",
-            "ModelVoiceTtsInventoryPolicy.availableOffline(",
+            "AndroidTtsVoiceInventoryReader.read(engine, requested, language)",
         ):
             self.assertIn(token, screen)
+
+    def test_android_inventory_policy_lives_in_data_adapter(self):
+        adapter = (ROOT / "data/adapters/AndroidTtsVoiceInventoryReader.kt").read_text()
+        self.assertIn("ModelVoiceTtsInventoryPolicy.availableOffline(", adapter)
+        self.assertIn("selectedEngine = selectedEngine", adapter)
+        self.assertIn("piperRequired = selectedEngine == PiperServiceContract.PACKAGE", adapter)
 
     def test_view_only_renders_state_and_forwards_taps(self):
         view = (ROOT / "ui/modelvoice/ModelVoiceVoiceOptionsView.kt").read_text()
