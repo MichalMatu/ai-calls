@@ -8,7 +8,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.AudioManager
-import android.speech.tts.TextToSpeech
 import android.speech.tts.Voice
 import android.telecom.TelecomManager
 import android.view.Gravity
@@ -18,10 +17,9 @@ import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.ImageView
 import android.widget.Toast
-import java.util.concurrent.Executors
 import java.util.Locale
 import pl.michalmatu.aicallbridge.R
-import pl.michalmatu.aicallbridge.data.adapters.AndroidTtsVoiceInventoryReader
+import pl.michalmatu.aicallbridge.data.adapters.AndroidTtsVoiceSession
 import pl.michalmatu.aicallbridge.presentation.modelvoice.ModelVoiceProfileController
 import pl.michalmatu.aicallbridge.presentation.modelvoice.ModelVoiceEnginePickerPresenter
 import pl.michalmatu.aicallbridge.presentation.modelvoice.ModelVoiceReadinessPresenter
@@ -54,12 +52,9 @@ internal class ModelVoiceSettings(
     private val lastAttempt get() = verification.lastAttempt
     private val checkResult get() = verification.checkResult
     private val voiceState = ModelVoiceTtsAsyncState()
-    private var tts: TextToSpeech? = null
+    private val ttsSession = AndroidTtsVoiceSession(activity)
     private val voicesReady: Boolean get() = voiceState.voicesReady
     private var localVoices = emptyList<Voice>()
-    private val voiceWorker = Executors.newSingleThreadExecutor { task ->
-        Thread(task, "model-voice-inventory").apply { isDaemon = true }
-    }
     private var engineIds = listOf<String?>(null)
     private var engineLabels = listOf(activity.getString(R.string.mv_system_engine))
     private var voiceDialog: AlertDialog? = null
@@ -139,7 +134,7 @@ internal class ModelVoiceSettings(
                 return false
             }
             is ModelVoiceProfileController.SaveResult.Saved -> {
-                tts?.stop()
+                ttsSession.stop()
                 probe.close(); verification.reset()
                 if (result.engineChanged) {
                     voiceState.onEngineChanged()
@@ -255,47 +250,41 @@ internal class ModelVoiceSettings(
         val generation = voiceState.beginLoad()
         val language = Locale.forLanguageTag(draft.languageTag).language
         localVoices = emptyList()
-        tts?.shutdown(); tts = null
         renderVoicePicker()
         val requested = draft.effectiveTtsEnginePackage
-        val holder = arrayOfNulls<TextToSpeech>(1)
-        val initialized = TextToSpeech.OnInitListener { result -> activity.mainExecutor.execute {
-            val engine = holder[0] ?: return@execute
-            if (!voiceState.accepts(generation) || activity.isDestroyed || activity.isFinishing) {
-                engine.shutdown(); return@execute
-            }
-            if (result != TextToSpeech.SUCCESS) {
-                engine.shutdown(); tts = null; voiceState.markReady(); voiceState.cancelPreview()
+        ttsSession.load(
+            requestedEngine = requested,
+            language = language,
+            accepts = {
+                voiceState.accepts(generation) && !activity.isDestroyed && !activity.isFinishing
+            },
+            onFailure = {
+                voiceState.markReady()
+                voiceState.cancelPreview()
                 voiceIssue.text = activity.getString(R.string.mv_voice_missing)
-                renderVoicePicker(); refresh(); return@execute
-            }
-            voiceWorker.execute {
-                val inventory = runCatching {
-                    AndroidTtsVoiceInventoryReader.read(engine, requested, language)
-                }.getOrNull()
-                activity.mainExecutor.execute ready@{
-                    if (!voiceState.accepts(generation) || activity.isDestroyed || activity.isFinishing) return@ready
-                    voiceState.markReady()
-                    localVoices = inventory?.voices.orEmpty()
-                    if (inventory == null) voiceIssue.text = activity.getString(R.string.mv_voice_missing)
-                    else {
-                        engineIds = listOf(null) + inventory.installedEngines.map { it.name }
-                        val labels = inventory.installedEngines.map { ModelVoiceTtsInventoryPolicy.displayEngineName(it.name, it.label) }
-                        val defaultIndex = inventory.installedEngines.indexOfFirst { it.name == inventory.defaultEngine }
-                        val automatic = labels.getOrNull(defaultIndex)?.let {
-                            activity.getString(R.string.mv_system_engine_named, it)
-                        } ?: activity.getString(R.string.mv_system_engine)
-                        engineLabels = listOf(automatic) + labels
+                renderVoicePicker()
+                refresh()
+            },
+            onReady = { inventory ->
+                voiceState.markReady()
+                localVoices = inventory?.voices.orEmpty()
+                if (inventory == null) voiceIssue.text = activity.getString(R.string.mv_voice_missing)
+                else {
+                    engineIds = listOf(null) + inventory.installedEngines.map { it.name }
+                    val labels = inventory.installedEngines.map {
+                        ModelVoiceTtsInventoryPolicy.displayEngineName(it.name, it.label)
                     }
-                    renderVoicePicker()
-                    refresh()
-                    voiceState.takeQueuedPreview()?.let { preview(it.voiceId) }
+                    val defaultIndex = inventory.installedEngines.indexOfFirst { it.name == inventory.defaultEngine }
+                    val automatic = labels.getOrNull(defaultIndex)?.let {
+                        activity.getString(R.string.mv_system_engine_named, it)
+                    } ?: activity.getString(R.string.mv_system_engine)
+                    engineLabels = listOf(automatic) + labels
                 }
-            }
-        } }
-        holder[0] = if (requested == null) TextToSpeech(activity, initialized)
-            else TextToSpeech(activity, initialized, requested)
-        tts = holder[0]
+                renderVoicePicker()
+                refresh()
+                voiceState.takeQueuedPreview()?.let { preview(it.voiceId) }
+            },
+        )
     }
 
     fun refresh() {
@@ -451,10 +440,9 @@ internal class ModelVoiceSettings(
                 activity.getSystemService(AudioManager::class.java)?.mode == AudioManager.MODE_IN_CALL }.getOrDefault(true)) {
             Toast.makeText(activity, R.string.eng_ui_preview_disabled, Toast.LENGTH_SHORT).show(); return
         }
-        val engine = tts
-        if (engine == null || !voicesReady) {
+        if (!ttsSession.hasEngine() || !voicesReady) {
             voiceState.queuePreview(voiceId)
-            if (engine == null) loadVoices()
+            if (!ttsSession.hasEngine()) loadVoices()
             return
         }
         val selected = localVoices.firstOrNull { voiceId == null || it.name == voiceId }
@@ -462,14 +450,12 @@ internal class ModelVoiceSettings(
             notifyError("polish_offline_voice_missing"); return
         }
         val deferPiperLoad = PiperServiceContract.canDeferVoiceLoad(
-            draft.effectiveTtsEnginePackage, selected.name,
-            engine.voices.orEmpty().map { it.name })
-        if (!deferPiperLoad && engine.setVoice(selected) != TextToSpeech.SUCCESS) {
-            notifyError("polish_offline_voice_missing"); return
+            draft.effectiveTtsEnginePackage, selected.name, ttsSession.availableVoiceNames())
+        val text = activity.getString(if (draft.languageTag == "en-US")
+            R.string.mv_voice_sample_english else R.string.mv_voice_sample)
+        if (!ttsSession.preview(selected, text, deferPiperLoad)) {
+            notifyError("polish_offline_voice_missing")
         }
-        engine.speak(activity.getString(if (draft.languageTag == "en-US")
-            R.string.mv_voice_sample_english else R.string.mv_voice_sample),
-            TextToSpeech.QUEUE_FLUSH, null, "model-voice-preview")
     }
 
     private fun notifyError(code: String) = Toast.makeText(activity, reason(activity, code), Toast.LENGTH_LONG).show()
@@ -483,9 +469,9 @@ internal class ModelVoiceSettings(
     fun pause() {
         active = false; voiceState.cancelPreview()
         verification.pause { activity.getString(R.string.mv_check_interrupted) }
-        probe.close(); tts?.stop(); voiceDialog?.dismiss()
+        probe.close(); ttsSession.stop(); voiceDialog?.dismiss()
     }
-    override fun close() { pause(); voiceState.invalidate(); tts?.shutdown(); tts = null; voiceWorker.shutdownNow() }
+    override fun close() { pause(); voiceState.invalidate(); ttsSession.close() }
 
     companion object {
         const val COMPAT_PHONE_STATE_REQUEST = 8112
