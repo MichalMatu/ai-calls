@@ -51,7 +51,7 @@ public final class CallMediaSessionRuntime implements AutoCloseable {
     private static CallMediaSessionBackend createBackend(Context context, CallMediaBackendMode mode) {
         Objects.requireNonNull(context, "context");
         if (Objects.requireNonNull(mode, "mode") != CallMediaBackendMode.GSM_SHELL_ADB
-            || !GsmShellMediaProtocol.S8_PACKAGE.equals(context.getPackageName())) {
+            || !GsmShellMediaProtocol.supportedPackage(context.getPackageName())) {
             throw new SecurityException("gsm_media_package_not_allowed");
         }
         return new GsmShellBinderCallMediaSessionBackend();
