@@ -10,8 +10,8 @@ Binder UID 2000 działa wyłącznie w osobnym hoście ADB, nigdy w APK. Po reboo
 
 ## Granica Compose / Material 3
 
-W PR #77 ekrany ustawień modelu i biblioteka plików są w `ui/modelvoice`; prezentery, kontroler profilu, readiness i stan asynchroniczny w `presentation/modelvoice`. `textagent.LanguageModelActivity` pozostaje zgodnym z manifestem punktem wejścia; `AudioEngineSettingsActivity` dziedziczy ten shim. Agent hub mapuje semantyczne klucze tekstowe do zasobów Androida dopiero w UI. Odczyt listy silników i głosów TTS odbywa się w `data/adapters/AndroidTtsVoiceInventoryReader`; UI zachowuje cykl życia i preview.
+Manifest i 34 ekrany są opisane w [mapie](UI_SCREEN_MAP.md). Zachować Android Views, wygląd, tagi, ustawienia, dane i nawigację bez redesignu. Compose + Material 3 jest migracją przyszłą, nie częścią tej serii PR.
 
-Kompletna [mapa 34 Activity, zagnieżdżonych ekranów, dialogów i ustawień](UI_SCREEN_MAP.md) jest kontraktem przyszłej migracji, a nie potwierdzeniem QA.
+Po #79/#80/#81/#83: `ui/modelvoice` i Activity nadal składają widoki; `presentation/modelvoice` zawiera prezentery, walidację profilu i asynchroniczny stan weryfikacji; `data/adapters` zawiera czytniki stanu, fabrykę STT/TTS dla runtime oraz natywny probe importowanego modelu. `SkillLabStartPolicy` wyznacza tryb i waliduje start Lab bez efektów. Bramki blokują importy z Domain i Data wstecz do UI/Presentation oraz Android/UI w czystych modułach JVM.
 
-Do wydzielenia za testami charakteryzacyjnymi: cykl natywnego TTS/probe, koordynacja transferów, rozbudowany runtime konwersacji i Lab. Zachować wygląd, stringi, tagi, stan, bezpieczeństwo exact-Call/SIM i dotychczasowe zachowanie; bez nowych modułów Gradle bez uzasadnienia. Nie scalać PR przed kompilacją Gradle i bezpieczną regresją S22+.
+Nadal wymagają refaktoru: pełny cykl sesji TTS widoku (PR #78 oczekuje fizycznego QA), transfery modeli, obszerna koordynacja runtime/Lab oraz pozostałe Activity. Brak kwalifikacji realnych rozmów przez bezpieczne testy UI; przed scalaniem następnych PR wymagane są kompilacja Gradle i regresja S22+ na dokładnym SHA.
