@@ -33,7 +33,8 @@ import pl.michalmatu.aicallbridge.audioengines.ParakeetModelIntegrity
 import pl.michalmatu.aicallbridge.audioengines.SpeechInputId
 import pl.michalmatu.aicallbridge.ui.modelvoice.ModelVoiceSettings
 import pl.michalmatu.aicallbridge.audioengines.ModelCompatibilityStore
-import pl.michalmatu.aicallbridge.audioengines.ModelCompatibilityProbe
+import pl.michalmatu.aicallbridge.data.adapters.AndroidImportedModelVerifier
+import pl.michalmatu.aicallbridge.presentation.modelvoice.ImportedModelVerificationState
 import pl.michalmatu.aicallbridge.audioengines.ModelVerificationUi
 import pl.michalmatu.aicallbridge.audioengines.ImportedModelCheckStatus
 import java.io.File
@@ -74,9 +75,10 @@ open class ModelLibraryScreenActivity : UiChromeActivity(AppTab.SETTINGS) {
     private var checkedParakeetStamp: Triple<String, Long, Long>? = null
     private var renderedLegacyModels: Pair<List<StoredLegacyLanguageModel>, DialogueModelId?>? = null
     private var renderedUserModels: List<Any?>? = null
-    private val importedModelProbe by lazy { ModelCompatibilityProbe(this) }
-    private var checkingImportedModelId: String? = null
-    private val importedModelFailures = mutableMapOf<String, String>()
+    private val importedModelVerifier by lazy { AndroidImportedModelVerifier(this) }
+    private val importedModelState = ImportedModelVerificationState()
+    private val checkingImportedModelId get() = importedModelState.checkingId
+    private val importedModelFailures get() = importedModelState.failures
     private lateinit var cancelTransfer: Button
     private var lastTransfer: TransferStatus? = null
     private val rows = mutableListOf<Row>()
@@ -506,15 +508,12 @@ open class ModelLibraryScreenActivity : UiChromeActivity(AppTab.SETTINGS) {
             dialogue = DialogueModelId.USER_LITERT,
             customModelId = model.id,
         )
-        checkingImportedModelId = model.id
-        importedModelFailures.remove(model.id)
+        if (!importedModelState.begin(model.id)) return
         renderedUserModels = null
         update()
         try {
-            importedModelProbe.check(file, candidate, audio = false) { failure ->
-                checkingImportedModelId = null
-                if (failure == null) importedModelFailures.remove(model.id)
-                else importedModelFailures[model.id] = failure
+            importedModelVerifier.check(file, candidate) { failure ->
+                if (!importedModelState.complete(model.id, failure)) return@check
                 if (!isDestroyed && !isFinishing) {
                     renderedUserModels = null
                     update()
@@ -525,8 +524,7 @@ open class ModelLibraryScreenActivity : UiChromeActivity(AppTab.SETTINGS) {
                 }
             }
         } catch (_: Exception) {
-            checkingImportedModelId = null
-            importedModelFailures[model.id] = "model_native_check_failed"
+            importedModelState.complete(model.id, "model_native_check_failed")
             renderedUserModels = null
             update()
         }
@@ -663,7 +661,7 @@ open class ModelLibraryScreenActivity : UiChromeActivity(AppTab.SETTINGS) {
     }
     override fun onResume() { super.onResume(); configuration.resume(); handler.post(refresh) }
     override fun onPause() { handler.removeCallbacks(refresh); configuration.pause(); super.onPause() }
-    override fun onDestroy() { if (checkingImportedModelId != null) importedModelProbe.close(); configuration.close(); verificationWorker.shutdownNow(); super.onDestroy() }
+    override fun onDestroy() { if (checkingImportedModelId != null) importedModelVerifier.close(); configuration.close(); verificationWorker.shutdownNow(); super.onDestroy() }
     companion object {
         private const val IMPORT = 1
         private const val FILES_MODE = "model_files_mode"
