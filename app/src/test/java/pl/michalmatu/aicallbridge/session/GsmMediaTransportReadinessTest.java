@@ -25,9 +25,19 @@ public final class GsmMediaTransportReadinessTest {
             GsmShellMediaProtocol.S8_PACKAGE, () -> false));
     }
 
+    @Test public void publicReleaseUsesTheSameAuthorizedShellTransport() {
+        AtomicInteger calls = new AtomicInteger();
+        assertTrue(GsmMediaTransportReadiness.selectedAvailable(
+            GsmShellMediaProtocol.APP_PACKAGE,
+            () -> { calls.incrementAndGet(); return true; }));
+        assertEquals(1, calls.get());
+        assertEquals(CallMediaBackendMode.GSM_SHELL_ADB,
+            CallMediaBackendMode.forPackage(GsmShellMediaProtocol.APP_PACKAGE));
+    }
+
     @Test public void otherPackageIdentitiesNeverRunTheShellProbe() {
         for (String packageName : new String[] {
-                "pl.michalmatu.aicallbridge", "com.example.unknown", "" }) {
+                "pl.michalmatu.aicallbridge.untrusted", "com.example.unknown", "" }) {
             AtomicInteger shellCalls = new AtomicInteger();
             assertFalse(GsmMediaTransportReadiness.selectedAvailable(
                 packageName, () -> { shellCalls.incrementAndGet(); return true; }));
