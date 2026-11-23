@@ -21,7 +21,10 @@ class TaskManagementContract(unittest.TestCase):
 
     def test_grouped_list_and_nonprimary_options(self):
         ui = (SRC/"PhoneTasksActivity.kt").read_text()
-        for token in ('PhoneTaskManagement.Group.entries', '"task-group:"',
+        presenter = (ROOT/"app/src/main/kotlin/pl/michalmatu/aicallbridge/presentation/tasks/PhoneTaskListController.kt").read_text()
+        self.assertIn('PhoneTaskManagement.Group.entries', presenter)
+        self.assertIn('PhoneTaskListController.sections(', ui)
+        for token in ('"task-group:"',
                       'tag = "task-options"', 'R.string.task_delete_warning',
                       'PhoneTaskWizardActivity::class.java', 'task_pause', 'task_resume',
                       'task_cancel', 'task_compare'):
