@@ -15,7 +15,7 @@ class Sprint5UxContract(unittest.TestCase):
 
     def test_bilingual_strings_are_complete_and_unambiguous(self):
         strings = []
-        for directory in ["values", "values-en"]:
+        for directory in ["values", "values-pl"]:
             elems = [node for node in ET.parse(
                 ROOT / "app/src/main/res" / directory / "strings.xml"
             ).getroot() if node.tag == "string"]

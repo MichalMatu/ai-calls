@@ -32,7 +32,7 @@ class TaskManagementContract(unittest.TestCase):
         self.assertIn('PhoneTaskManagement.Group.SCHEDULED', ui)
 
     def test_bilingual_labels_and_independent_call_archive(self):
-        for locale in ("values", "values-en"):
+        for locale in ("values", "values-pl"):
             txt=(ROOT/"app/src/main/res"/locale/"strings.xml").read_text()
             for key in ("task_group_current", "task_group_scheduled",
                         "task_group_history", "task_options", "task_delete",

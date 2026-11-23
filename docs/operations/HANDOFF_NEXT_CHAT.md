@@ -1,5 +1,5 @@
-# Wznowienie po MVP
+# Resuming work
 
-Projekt zamrożony na wydaniu 0.2.2. Źródło: aktualny `main`; wyniki wykonanych testów są w `agent-control/.agent/results/`. Nie uruchamiać nowych sprintów i nie powtarzać ukończonych testów bez konkretnego powodu.
+Start from `main` and check HEAD, the worktree and the current device. Agent results are in `agent-control/.agent/results/`. Confirm each result applies to the APK you are working on.
 
-Przed kolejną zmianą sprawdzić HEAD, stan urządzenia i zachowanie istniejącego APK. Fizyczne GSM EN/outgoing oraz kwalifikacja produkcyjna pozostają niezweryfikowane. Instrukcje środowiska: [Mac Local Agent](LOCAL_AGENT.md).
+Use the [project status](../PROJECT.md) for verified scope and the [build and release guide](DEVELOPMENT.md) for the next preview. [Mac Local Agent](LOCAL_AGENT.md)

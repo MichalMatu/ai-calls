@@ -32,7 +32,7 @@ class ToolsUiControllerContract(unittest.TestCase):
         self.assertIn("R.string.tools_ui_save_note_detail", activity)
         self.assertIn("R.string.tools_ui_end_call_detail", activity)
     def test_labels_available_both_languages(self):
-        for locale in ("values","values-en"):
+        for locale in ("values","values-pl"):
             resources=ET.parse(ROOT/"res"/locale/"strings.xml").getroot()
             names={e.attrib["name"] for e in resources.findall("string")}
             self.assertTrue(all("tools_ui_"+v in names for v in

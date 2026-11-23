@@ -1,5 +1,5 @@
-# Interfejs
+# Interface
 
-MVP na S22+: Home, History, Agent, Settings; w rozmowie AI/MANUAL, STOP/takeover. Outgoing: cel → odbiorcy → SIM/okno → zgoda. Historia, szyfrowane notatki, WAV, profile PL/EN.
+The main tabs are Home, Calls, AI Agent and Settings. English is the default. The language selector also offers Polish and sets the speech profile for new conversations.
 
-W **Ustawienia → GSM audio** dostępne są stan hosta ADB, zarządzanie parowaniem i ręczny start hosta. Pełny spis 34 Activity, nawigacji i ustawień: [Mapa UI](../architecture/UI_SCREEN_MAP.md).
+**Settings → GSM audio** shows pairing and host status and lets you start the host while idle. See the [Activity map](../architecture/UI_SCREEN_MAP.md) for the screen inventory.

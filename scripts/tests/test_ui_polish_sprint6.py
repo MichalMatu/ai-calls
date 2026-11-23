@@ -86,7 +86,7 @@ class Sprint6UXContract(unittest.TestCase):
 
     def test_resource_parity_and_format_specifiers(self):
         dictionaries = []
-        for directory in ("values", "values-en"):
+        for directory in ("values", "values-pl"):
             d = ROOT / "app/src/main/res" / directory / "strings.xml"
             elements = [e for e in ET.parse(d).getroot() if e.tag == "string"]
             names = [e.attrib["name"] for e in elements]

@@ -72,7 +72,9 @@ def audit(root: Path) -> list[str]:
             errors.append(f"{file}: unsafe {label}")
 
     profile = files["AudioEngineProfile"]
-    require("AudioEngineProfile", profile, r"val STABLE\s*=\s*AudioEngineProfile\s*\(\s*\)", "stable-default-no-override")
+    require("AudioEngineProfile", profile,
+            r'val STABLE\s*=\s*AudioEngineProfile\s*\(\s*languageTag\s*=\s*"en-US"\s*\)',
+            "stable-english-default")
     for selection in ("ANDROID_STT", "GEMMA_4_E2B", "ANDROID_TTS_PL"):
         require("AudioEngineProfile", profile, r"val \w+\s*:\s*\w+\s*=\s*\w+\." + selection + r"\b",
                 "stable baseline " + selection)

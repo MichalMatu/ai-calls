@@ -39,7 +39,7 @@ class HomeFastFlowContract(unittest.TestCase):
         self.assertIn("PhoneTaskWizardActivity::class.java", home)
 
     def test_locales_include_labels_and_plural_counts(self):
-        for language in ("values", "values-en"):
+        for language in ("values", "values-pl"):
             text = (ROOT/"app/src/main/res"/language/"strings.xml").read_text()
             for key in ("home_notebook_shortcut", "home_activity_idle",
                         "home_activity_incoming", "home_outgoing_hint",

@@ -104,7 +104,7 @@ class DocumentationContractTest(unittest.TestCase):
             # Grow only to the warning zone, independent of the live docs baseline.
             for path in (root / "docs").rglob("*.md"):
                 if path.name == "PROJECT.md":
-                    path.write_text("# Project budget fixture\n\n## Następny sprint\n\nPending\n\n## Otwarte\n\nNone\n")
+                    path.write_text("# Project budget fixture\n\n## Verified builds\n\nNone\n\n## Preview release work\n\nPending\n")
                 elif path.name != "README.md":
                     path.write_text("# Budget fixture " + path.stem + "\n")
             baseline = audit(root)[2]

@@ -25,7 +25,7 @@ class PersonalScenarioUiContract(unittest.TestCase):
         self.assertIn('"home-incoming-settings"',home)
         self.assertIn('"home-task-start"',home)
         self.assertIn('"home-stop-ai"',home)
-        for locale in ("values", "values-en"):
+        for locale in ("values", "values-pl"):
             strings=(ROOT/"app/src/main/res"/locale/"strings.xml").read_text()
             self.assertIn('name="home_outgoing_action"',strings)
             self.assertIn('name="home_incoming_summary"',strings)

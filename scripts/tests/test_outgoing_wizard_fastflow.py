@@ -19,7 +19,7 @@ class OutgoingWizardFastflowTest(unittest.TestCase):
         self.assertIn('require(!draft.scheduled || start > now)', factory)
         self.assertIn('requireNotNull(draft.subscriptionId)', factory)
     def test_labels_bilingual(self):
-        for locale in ("values","values-en"):
+        for locale in ("values","values-pl"):
             strings = (ROOT / "app/src/main/res" / locale / "strings.xml").read_text()
             for key in ("task_custom_help","task_window_expired"):
                 self.assertEqual(1, strings.count('name="'+key+'"'))

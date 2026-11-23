@@ -1,6 +1,7 @@
 package pl.michalmatu.aicallbridge.incoming
 
 import android.content.Context
+import pl.michalmatu.aicallbridge.R
 import pl.michalmatu.aicallbridge.audioengines.DialogueEngineProviders
 import pl.michalmatu.aicallbridge.audioengines.ConversationRunConfiguration
 import pl.michalmatu.aicallbridge.conversation.*
@@ -32,10 +33,10 @@ internal class IncomingSecretaryScenario(
     )
     override fun readinessFailure(): String? = null
     override fun open(hooks: ConversationRuntimeHooks): ConversationDialogueSession {
-        val task = CallTask("Przyjmij wiadomość", "TAKE_MESSAGE", "incoming",
+        val task = CallTask(context.getString(R.string.incoming_runtime_message_task), "TAKE_MESSAGE", "incoming",
             CallConstraints.unconstrained(), CallPreferences.none(), emptyMap())
         val workflow = CallWorkflow(task, CallConfirmationPolicy()) { }.apply {
-            resolveTarget(CallResolvedTarget("Rozmówca przychodzący", "incoming-session"))
+            resolveTarget(CallResolvedTarget(context.getString(R.string.incoming_runtime_caller), "incoming-session"))
             markDialing(); markCallActive()
         }
         val release = CallTextAgentOutputApprovalPolicy(workflow, CallCommitmentGate { "incoming-no-external-effects" })

@@ -27,7 +27,7 @@ class ScenarioCleanUiContract(unittest.TestCase):
         self.assertIn('ScenarioOutgoingCallActivity::class.java',ui)
         self.assertNotIn("AppOwnedCampaignService",ui)
     def test_labels_localized(self):
-        for locale in ("values","values-en"):
+        for locale in ("values","values-pl"):
             values=(ROOT/"app/src/main/res"/locale/"strings.xml").read_text()
             for key in ("scenario_ui_new","scenario_ui_new_title","scenario_ui_none",
                         "scenario_ui_save_changes","scenario_ui_save_personal",

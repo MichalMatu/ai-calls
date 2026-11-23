@@ -57,7 +57,7 @@ class Sprint4UxContract(unittest.TestCase):
 
     def test_bilingual_labels_match_and_format_arguments(self):
         files = [ROOT / "app/src/main/res" / path for path in
-                 ("values/strings.xml", "values-en/strings.xml")]
+                 ("values/strings.xml", "values-pl/strings.xml")]
         sets = [{e.attrib["name"]: (e.text or "") for e in ET.parse(path).getroot()
                  if e.tag == "string"} for path in files]
         self.assertEqual(set(sets[0]), set(sets[1]))

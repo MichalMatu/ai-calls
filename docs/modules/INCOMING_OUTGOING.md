@@ -1,5 +1,5 @@
-# Telefonia
+# Telephony
 
-**Incoming:** AUTO/MANUAL dla wybranej SIM. Takeover oddaje rozmowę człowiekowi. Wznowienie wymaga zgody. END_CALL wywołuje właściciel po TTS.
+Incoming answering uses AI or manual mode on the selected SIM. Takeover returns control to the user. Resuming needs authorization. The runtime requests END_CALL after TTS.
 
-**Outgoing:** `PhoneTask` wymaga zgody, okna czasowego i SIM. Retry obejmuje BUSY/NO_ANSWER. Nowy kreator domyślnie zaznacza WAV. Odznaczenie wyłącza zapis, a kopia zadania zachowuje wybór.
+Outgoing tasks require user approval, a time window and an exact SIM. BUSY and NO_ANSWER can be retried under the approved policy. The new task wizard selects WAV recording by default. Untick it to skip recording. Copies preserve the original choice.

@@ -1,27 +1,24 @@
 # AI Calls
 
-**An on-device AI phone assistant for Android.** AI Calls can help answer incoming calls, prepare authorized outgoing call tasks, run local speech and language models, and keep a private record of conversations.
+**An on-device AI assistant for GSM calls.** AI Calls can answer on a selected SIM, take a message, and prepare outgoing enquiries for your approval. Gemma and the selected speech engines run on the phone.
 
 **MVP preview · Samsung Galaxy S22+ (SM-S906B) · Android 16**
 
-The GSM setup below applies to **AI Calls 0.2.3**. The published 0.2.2 APK lacks Wireless ADB setup in the main AI Calls app. Check the release page for APKs and their SHA-256 checksums. [GitHub releases](https://github.com/MichalMatu/ai-calls/releases)
+Use **AI Calls 0.2.3** for this guide. The latest published APK, **0.2.2**, lacks the Wireless ADB setup shown here. Release assets include the APK and its SHA-256 checksum. [GitHub releases](https://github.com/MichalMatu/ai-calls/releases)
 
-> **Preview, not a production-qualified dialer.** On-device GSM transport has only been developed for the specified S22+ / Android 16 configuration. Polish incoming GSM, encrypted notes and WAV have earlier physical evidence; live English GSM and outgoing flows still require acceptance on this build. Only use calls you own or are authorized to handle.
+The preview targets the S22+ configuration above. See the project status for the exact builds tested and the scope of each result. [Validation status](docs/PROJECT.md)
 
 ## What can it do?
 
-- **Incoming calls:** choose AI or manual answering, assign a SIM and take over an active AI-managed call using STOP/takeover.
-- **Outgoing tasks:** prepare a purpose, recipients, SIM and time window, then explicitly approve the call (experimental; no automatic dialing by installing the app).
-- **Private conversation history:** locally saved history, encrypted notes and optional WAV recordings, with controls to disable recordings.
-- **On-device AI:** downloaded Gemma models, configurable conversation instructions/skills, local speech recognition and voice output, language choices for Polish and English.
-- **Settings and diagnostics:** model compatibility checks, microphone/phone permissions, GSM host readiness and an isolated laboratory for supported testing flows.
-
-The Android interface currently uses Views; the code is split into UI, presentation/domain logic, data adapters and JVM modules. [Architecture](docs/architecture/SYSTEM.md) · [MVP status](docs/PROJECT.md)
+- Switch between AI and manual answering. Use **STOP** to take over an active AI-managed call.
+- Prepare an experimental outgoing enquiry by choosing the recipients, SIM and time window. Explicitly approve each task.
+- Review local conversation history and encrypted notes. Enable local WAV segments separately if you want audio evidence.
+- Choose a Gemma model, voice, speaking language and conversation instructions.
 
 ## Install on Samsung S22+ (Android 16)
 
-1. Open the **AI Calls APK** on the phone and follow the Android installer prompts.
-2. Open **AI Calls → Settings → Permissions and default apps** (*Uprawnienia i aplikacje domyślne*). Under **1. Default Phone app**, tap **Set as phone app** (*Ustaw jako aplikację Telefon*) and confirm in Android. If Android denies the request, open **AI Calls app info in Android → ⋮ → Allow restricted settings** (*Zezwól na ograniczone ustawienia*). Confirm, return to AI Calls and retry. [Android Help](https://support.google.com/android/answer/12623953)
+1. Verify the APK against the release checksum. Open it in **My Files → Downloads** and follow the Android installer prompts.
+2. Open **AI Calls → Settings → Permissions and default apps → 1. Default Phone app**. Tap **Set as phone app** and select **AI Calls** in Android. If Android denies the request, open **AI Calls app info in Android → ⋮ → Allow restricted settings**, confirm, and retry. [Android Help](https://support.google.com/android/answer/12623953)
 3. Under **2. App permissions**, check what Android granted with the Phone app role. If all rows say **Granted**, continue to **3. GSM audio**. Use **Grant access** for any missing permission. **SIM cards and phone state** lets AI Calls list your SIM cards. **Notifications for ADB pairing** lets you reply with the code from the notification shade.
 4. Connect the phone to Wi-Fi. If **Developer options** are hidden, go to **Android Settings → About phone → Software information** and tap **Build number** seven times. Back in AI Calls, open **3. GSM audio**.
 
@@ -31,15 +28,15 @@ The Android interface currently uses Views; the code is split into UI, presentat
   <img src="docs/images/setup/app-permissions.jpg" width="245" alt="AI Calls shows the Phone app role and granted permissions">
 </p>
 
-## Wireless ADB pairing — enter the code in the top notification shade
+## Pair Wireless ADB
 
-Pairing runs on the phone over Wi-Fi. Android displays a six-digit code. Enter it in the **AI Calls notification** while the Android code window stays open. The app discovers the local port automatically.
+Pairing runs on the phone over Wi-Fi. Enter Android's six-digit code in the **AI Calls notification** in the top notification shade.
 
-1. In **GSM audio / Audio GSM**, tap **Start pairing in Android / Rozpocznij parowanie w Androidzie**. Allow notifications if prompted. AI Calls opens Android Developer options and posts a pairing notification.
-2. Open **Wireless debugging / Debugowanie bezprzewodowe**, enable it and tap **Pair device with pairing code / Sparuj urządzenie kodem parowania**. **Leave the Android popup with its six-digit code visible.**
-3. **Swipe down from the very top of the screen** to open the notification shade (*górna szuflada powiadomień*). Expand **AI Calls — GSM pairing / parowanie GSM** if needed, tap **Enter code / Wpisz kod**, type the **six digits shown in the Android popup**, and submit the notification reply.
-4. Wait for the **“Sparowano / Paired”** notification. Go back to AI Calls → **GSM audio**. While the phone is **not in a call**, tap **“Uruchom host audio GSM / Start GSM audio host”**.
-5. Tap **Refresh status / Odśwież stan**. Expect **ADB: connected and authorized / połączono i autoryzowano** and **GSM audio: ready / Audio GSM: gotowe**.
+1. In **GSM audio**, tap **Start pairing in Android**. Allow notifications if prompted. AI Calls opens **Developer options** and posts a pairing notification.
+2. Open **Wireless debugging**, enable it and tap **Pair device with pairing code**. Leave the Android code window open.
+3. **Swipe down from the top of the screen**. Expand **AI Calls — GSM pairing**, tap **Enter code**, type the six digits from Android and submit the reply.
+4. When the notification says **Paired**, return to **GSM audio**. With the phone idle, tap **Start GSM audio host**.
+5. Tap **Refresh status** and look for **ADB: connected and authorized** and **GSM audio: ready**.
 
 <p>
   <img src="docs/images/setup/start-wireless-adb.jpg" width="280" alt="GSM audio screen with Start pairing in Android">
@@ -50,24 +47,31 @@ Pairing runs on the phone over Wi-Fi. Android displays a six-digit code. Enter i
   <img src="docs/images/setup/gsm-audio-ready.jpg" width="280" alt="AI Calls confirms that ADB is authorized and GSM audio is ready">
 </p>
 
-If you do not see the reply notification, check **AI Calls notification permission** and that notifications are not blocked. You can alternatively use the six-digit field inside AI Calls in split-screen mode, keeping Android's code popup open. If pairing fails, reopen the Android pairing-code dialog to get a **new** code; do not reuse an expired code. After a reboot, you may need to re-enable Wireless debugging and **start the GSM host again**.
-
 ## Finish setup and use
 
-1. Open **Model and voice / Model i głos** and download a supported Gemma model. Start with **Gemma 4 E2B**. Run **Check compatibility**, choose the conversation language, and tap **Preview voice**.
-2. For incoming calls, return to **Permissions and default apps → 4. SIM and call answering / Karta SIM i odbieranie**. Select the **SIM**, choose **AI — answer and take messages**, and tap **Save settings**. Turn on **Record incoming call audio segments (WAV)** if you want local audio segments.
+1. In **Model and voice**, download **Gemma 4 E2B**, run **Check compatibility**, and tap **Preview voice**. Gemma needs a model download on first setup.
+2. In **Permissions and default apps → 4. SIM and call answering**, select the SIM, choose **AI — answer and take messages**, and tap **Save settings**. Enable **Record incoming call audio segments (WAV)** if you want local audio segments.
+3. Place a first incoming test call with a consenting caller. Check the greeting, a short reply and **STOP** takeover. In a separate call, check that a clear goodbye plays to completion before disconnecting.
 
 <p>
   <img src="docs/images/setup/model-compatibility.jpg" width="280" alt="Downloaded Gemma 4 E2B with Check compatibility, language and voice controls">
   <img src="docs/images/setup/sim-and-answering.jpg" width="280" alt="Answering calls settings with the SIM selector and optional WAV recording">
 </p>
 
-For outgoing calls, choose a SIM in the task and explicitly approve the call. Adjust **Conversation instructions** before using real conversations.
+### English and Polish
 
-**Security:** Wireless ADB grants powerful local debugging access. Use only on your own phone, disable it when not needed, and never share pairing codes, tokens, call audio or private transcripts. The app uses a package-bound shell host and checks an exact device/UID, but this MVP is not a general security audit.
+English is the default. Choose **English** or **Polish** under **Settings → App and conversation language**. The in-app selection changes the interface, built-in instructions, speech recognition, and voice for new conversations. Both languages use the same Gemma model. Your own instructions and task text keep the words you entered. Review the approval if an outgoing task was saved in the other language.
+
+### Restore service or switch to manual
+
+- **Pairing reply missing or expired.** Check notification permission and start a new pairing attempt. **Enter code in the app** is available in split-screen mode with the Android code window open.
+- **GSM audio unavailable after a reboot.** Enable Wireless debugging and start the host again with the phone idle. Refresh the status. Pair again if the authorization was removed.
+- **Manual answering.** Save **Manual** under **4. SIM and call answering**. You can also restore your previous Phone app in **Android default apps**.
+
+Wireless ADB grants local debugging access. Use it on your own phone and switch it off when finished. Keep pairing codes, credentials, audio, and private transcripts out of shared reports. [Security design](docs/architecture/SECURITY.md)
 
 ## Contributions welcome
 
-Issues, reproducible bug reports, documentation improvements, tests, accessibility work and focused pull requests are welcome. For a larger change, open an issue first; preserve the existing UI, user data, exact Call/SIM ownership and STOP/takeover safety gates. Never include personal call data or secrets in PRs. See [developer documentation](docs/README.md).
+Reproducible bug reports, documentation, tests, accessibility improvements and focused pull requests are welcome. Include the version, device and steps, with sanitized evidence. Open an issue first for larger changes. [Build and release guide](docs/operations/DEVELOPMENT.md) · [Architecture](docs/architecture/SYSTEM.md)
 
-**License:** No reuse/distribution license is declared in this repository at present; please discuss licensing with the maintainer before reusing the code outside this project.
+The source is public on GitHub. Contact the maintainer about reuse or redistribution of the project code while a project license is pending.

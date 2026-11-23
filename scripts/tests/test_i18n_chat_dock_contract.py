@@ -6,7 +6,7 @@ class I18nDockContract(unittest.TestCase):
  def setUpClass(cls):
   cls.panel=(ROOT/"kotlin/pl/michalmatu/aicallbridge/conversation/ConversationChatPanel.kt").read_text()
   cls.keys=[]
-  for lang in ("values","values-en"):
+  for lang in ("values","values-pl"):
    doc=ET.parse(ROOT/"res"/lang/"strings.xml")
    cls.keys.append({t.attrib["name"]:t.text for t in doc.getroot()})
  def test_resource_parity(self):

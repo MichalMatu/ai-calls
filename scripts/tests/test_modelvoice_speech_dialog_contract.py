@@ -13,7 +13,8 @@ class ModelVoiceSpeechDialogContract(unittest.TestCase):
         self.assertIn("ModelVoiceInputDialog(", owner)
         self.assertIn("ModelVoiceSpeechPickerPresenter.inputOptions(draft, AudioEngineRegistry.inputs)", owner)
         self.assertIn("::selectInput", owner)
-        self.assertIn("if (selected == draft.languageTag) true", owner)
+        self.assertIn("val saved = selected == draft.languageTag ||", owner)
+        self.assertIn("if (saved) AppLanguage.select(activity, selected.substringBefore('-'))", owner)
 
     def test_view_only_forwards_choices_and_does_not_write_or_probe(self):
         dialog = (ROOT / "ui/modelvoice/ModelVoiceSpeechDialogs.kt").read_text()

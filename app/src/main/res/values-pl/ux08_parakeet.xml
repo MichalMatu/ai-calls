@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ux08_parakeet_verifying">Sprawdzanie SHA-256 · bez pobierania</string>
+    <string name="ux08_parakeet_bad_integrity">Plik nie przeszedł weryfikacji SHA-256</string>
+    <string name="ux08_parakeet_wrong_size">Plik jest niekompletny lub ma nieprawidłowy rozmiar</string>
+    <string name="ux08_parakeet_download_again">Pobierz ponownie · 615 MB</string>
+    <string name="ux08_parakeet_verify_only">Sprawdź SHA-256 · bez internetu</string>
+    <string name="ux08_parakeet_download_615">Pobierz model · 615 MB</string>
+</resources>

@@ -48,8 +48,8 @@ class UxSprint3Contract(unittest.TestCase):
 
     def test_primary_ui_resource_names_match_pl_and_en(self):
         import xml.etree.ElementTree as ET
-        a = ET.parse(RES/"values/strings.xml").getroot()
-        b = ET.parse(RES/"values-en/strings.xml").getroot()
+        a = ET.parse(RES/"values-pl/strings.xml").getroot()
+        b = ET.parse(RES/"values/strings.xml").getroot()
         pl = {e.attrib["name"] for e in a if e.tag == "string"}
         en = {e.attrib["name"] for e in b if e.tag == "string"}
         self.assertEqual(pl, en)

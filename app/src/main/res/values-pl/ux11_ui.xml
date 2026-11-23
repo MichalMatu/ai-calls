@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ux11_lab_timeline_title">Przebieg rozmowy</string>
+    <string name="ux11_lab_empty">Uruchom test offline, aby zobaczyć rozmowę.</string>
+    <string name="ux11_vault_edit_field">Edytuj pole %1$s</string>
+    <string name="ux11_vault_remove_field">Usuń pole %1$s</string>
+</resources>

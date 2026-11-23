@@ -37,7 +37,7 @@ ARCHIVE_HEADING = re.compile(
 )
 STATUS_HEADING = re.compile(
     r"^#{1,3}\s+(?:otwarte|roadmapa|priorytety|następny sprint|"
-    r"stan projektu|status projektu)(?:\s|:|—|$)", re.I,
+    r"stan projektu|status projektu|project status|preview release work)(?:\s|:|—|$)", re.I,
 )
 BULLET = re.compile(r"^(?:[-*]|\d+[.)])\s+")
 MIN_DUPLICATE_CHARS = 240
@@ -190,7 +190,7 @@ def audit(root: Path) -> tuple[list[str], list[str], int]:
     project = root / "docs/PROJECT.md"
     if project.is_file():
         source = project.read_text(encoding="utf-8")
-        for heading in ("## Otwarte", "## Następny sprint"):
+        for heading in ("## Verified builds", "## Preview release work"):
             if heading not in source:
                 errors.append(f"docs/PROJECT.md: missing current state section: {heading}")
 

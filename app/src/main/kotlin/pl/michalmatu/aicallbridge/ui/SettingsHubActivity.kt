@@ -10,7 +10,10 @@ import android.widget.Spinner
 import android.widget.AdapterView
 import android.view.View
 import android.widget.ScrollView
+import android.widget.Toast
 import pl.michalmatu.aicallbridge.R
+import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfileStore
+import pl.michalmatu.aicallbridge.audioengines.ModelVoiceSelectionPolicy
 import pl.michalmatu.aicallbridge.conversation.ConversationPromptSettingsActivity
 import pl.michalmatu.aicallbridge.conversation.ConversationSkillLabActivity
 import pl.michalmatu.aicallbridge.textagent.LanguageModelActivity
@@ -44,13 +47,11 @@ class SettingsHubActivity : AppBaseActivity() {
         } else if (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0) {
             destination(R.string.ui_lab_short, ConversationSkillLabActivity::class.java)
         }
-        // Interface language is independent of STT/TTS and belongs after functional settings.
-        // One visible native dropdown; selecting a language takes only one tap to open.
-        val languageCodes = listOf("auto", "pl", "en")
+        // The saved speech profile is captured when a new conversation starts.
+        val languageCodes = listOf("en", "pl")
         val languageLabels = listOf(
-            getString(R.string.ui_language_auto),
-            getString(R.string.ui_language_polish),
             getString(R.string.ui_language_english),
+            getString(R.string.ui_language_polish),
         )
         val language = UiDesign.card(this).apply { tag = "settings-language-card" }
         language.addView(UiDesign.caption(this, getString(R.string.ui_language_label)),
@@ -65,8 +66,14 @@ class SettingsHubActivity : AppBaseActivity() {
         languagePicker.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 val requested = languageCodes[position]
-                if (requested != AppLanguage.selected(this@SettingsHubActivity)) {
+                val current = AppLanguage.selected(this@SettingsHubActivity)
+                if (requested == current) return
+                if (saveConversationLanguage(requested)) {
                     AppLanguage.select(this@SettingsHubActivity, requested)
+                } else {
+                    Toast.makeText(this@SettingsHubActivity, R.string.eng_ui_save_error,
+                        Toast.LENGTH_SHORT).show()
+                    languagePicker.setSelection(languageCodes.indexOf(current))
                 }
             }
             override fun onNothingSelected(parent: AdapterView<*>?) = Unit
@@ -83,4 +90,12 @@ class SettingsHubActivity : AppBaseActivity() {
         }, AppTab.SETTINGS)
     }
 
+    private fun saveConversationLanguage(language: String): Boolean {
+        val store = AudioEngineProfileStore(this)
+        return runCatching {
+            val previous = store.load() ?: return false
+            val tag = if (language == "pl") "pl-PL" else "en-US"
+            previous.languageTag == tag || store.save(ModelVoiceSelectionPolicy.forLanguage(previous, tag))
+        }.getOrDefault(false)
+    }
 }

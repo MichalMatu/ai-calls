@@ -44,7 +44,7 @@ class ModelVoiceProfileControllerTest {
         assertEquals(0, store.writeCount)
         store.allowWrite = false
         assertEquals(ModelVoiceProfileController.SaveResult.WriteFailed,
-            state.select(AudioEngineProfile(languageTag = "en-US")))
+            state.select(AudioEngineProfile.STABLE.copy(languageTag = "pl-PL")))
         assertEquals(1, store.writeCount)
         assertEquals(AudioEngineProfile.STABLE, state.draft)
     }
@@ -53,24 +53,23 @@ class ModelVoiceProfileControllerTest {
         val store = FakeStore()
         val state = store.controller()
         assertEquals(ModelVoiceProfileController.SaveResult.Saved(false),
-            state.select(AudioEngineProfile(voiceId = "example")))
+            state.select(state.draft.copy(voiceId = "example")))
         assertEquals(ModelVoiceProfileController.SaveResult.Saved(true),
-            state.select(AudioEngineProfile(voiceId = "example", languageTag = "en-US")))
+            state.select(state.draft.copy(languageTag = "pl-PL")))
         assertEquals(ModelVoiceProfileController.SaveResult.Saved(true),
-            state.select(AudioEngineProfile(voiceId = "example", languageTag = "en-US",
-                ttsEnginePackage = "org.example.tts")))
+            state.select(state.draft.copy(ttsEnginePackage = "org.example.tts")))
         assertEquals(3, store.writeCount)
     }
 
     @Test fun savedExternalChangeIsAdoptedOnlyAfterScreenCancelsProbe() {
         val store = FakeStore()
         val state = store.controller()
-        store.saved = AudioEngineProfile(languageTag = "en-US")
+        store.saved = AudioEngineProfile.STABLE.copy(languageTag = "pl-PL")
         val pending = state.pendingExternalChange()
         assertTrue(pending!!.engineChanged)
         assertEquals(AudioEngineProfile.STABLE, state.draft)
         state.acceptExternalChange(pending)
-        assertEquals("en-US", state.draft.languageTag)
+        assertEquals("pl-PL", state.draft.languageTag)
         assertEquals(0, store.writeCount)
         assertNull(state.pendingExternalChange())
     }

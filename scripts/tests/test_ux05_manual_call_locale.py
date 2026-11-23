@@ -13,16 +13,16 @@ KEYS = set(["dialer_ui_dial","dialer_ui_number_required","dialer_ui_dial_error",
 class ManualCallLocaleContract(unittest.TestCase):
     def test_every_manual_action_and_status_has_both_locales(self):
         tables = {}
-        for directory in ("values", "values-en"):
+        for directory in ("values", "values-pl"):
             root = ET.parse(RES / directory / "strings.xml").getroot()
             tables[directory] = {e.attrib["name"]: e.text or "" for e in root.findall("string")}
-        self.assertEqual(set(tables["values"]), set(tables["values-en"]))
+        self.assertEqual(set(tables["values"]), set(tables["values-pl"]))
         for key in KEYS:
             for directory in tables:
                 with self.subTest(key=key, locale=directory):
                     self.assertTrue(tables[directory][key].strip())
             fmt = lambda s: re.findall(r"%(?:\d+\$)?[sd]", s)
-            self.assertEqual(fmt(tables["values"][key]), fmt(tables["values-en"][key]))
+            self.assertEqual(fmt(tables["values"][key]), fmt(tables["values-pl"][key]))
 
     def test_text_only_migration_keeps_existing_call_controls(self):
         code = ACTIVITY.read_text()

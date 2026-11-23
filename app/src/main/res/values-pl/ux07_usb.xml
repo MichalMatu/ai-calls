@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ux07_usb_phone">Telefon</string>
+    <string name="ux07_usb_campaign">Kampania</string>
+    <string name="ux07_usb_input">STT</string>
+    <string name="ux07_usb_dialogue">Model AI</string>
+    <string name="ux07_usb_output">Głos / TTS</string>
+    <string name="ux07_usb_recording">Nagrywanie</string>
+    <string name="ux07_usb_incoming">Sekretarka</string>
+    <string name="ux07_usb_tts_engine">Silnik TTS · pakiet</string>
+    <string name="ux07_usb_piper_output">Piper (Android TTS)</string>
+    <string name="ux07_usb_incoming_recording">Nagrywanie przychodzących</string>
+    <string name="ux07_usb_outgoing_recording">Nagrywanie wychodzących</string>
+</resources>

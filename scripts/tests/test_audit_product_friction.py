@@ -44,11 +44,11 @@ class AntiFrictionGateTest(TestCase):
             agents = root / "AGENTS.md"
             agents.write_text(
                 agents.read_text(encoding="utf-8").replace(
-                    "Tylko GSM bez Shizuku", "GSM i SIP"),
+                    "GSM only, without Shizuku", "GSM and SIP"),
                 encoding="utf-8")
             errors = audit(root)
             self.assertTrue(any("AGENTS.md" in error and
-                                "Tylko GSM bez Shizuku" in error
+                                "GSM only, without Shizuku" in error
                                 for error in errors), errors)
 
     def test_mutation_of_per_call_confirmation_is_caught(self):
@@ -71,7 +71,7 @@ class AntiFrictionGateTest(TestCase):
                 file.parent.mkdir(parents=True, exist_ok=True)
                 file.write_text((ROOT / name).read_text(encoding="utf-8"), encoding="utf-8")
             current = root / "docs/PROJECT.md"
-            current.write_text(current.read_text(encoding="utf-8").replace("## Otwarte", "## Legacy"))
+            current.write_text(current.read_text(encoding="utf-8").replace("## Preview release work", "## Legacy"))
             errors = audit(root)
-            self.assertTrue(any("docs/PROJECT.md" in error and "## Otwarte" in error
+            self.assertTrue(any("docs/PROJECT.md" in error and "## Preview release work" in error
                                 for error in errors), errors)

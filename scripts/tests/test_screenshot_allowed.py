@@ -17,5 +17,5 @@ class ScreenCaptureContract(unittest.TestCase):
     def test_permanent_owner_rule_in_current_security_docs(self):
         for relative in ("AGENTS.md", "docs/architecture/SECURITY.md"):
             with self.subTest(path=relative):
-                self.assertIn("Bez `FLAG_SECURE`", (ROOT / relative).read_text())
+                self.assertIn("No `FLAG_SECURE`", (ROOT / relative).read_text())
 if __name__=="__main__":unittest.main()

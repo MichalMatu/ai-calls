@@ -55,12 +55,14 @@ internal class AppointmentMvpConversationScenario(
             },
         )
         val approved = CallTextAgentOutputApprovalPolicy(workflow, commitmentGate)
+        val english = configuration.audioProfile.languageTag == "en-US"
         val baseSession = object : ConversationDialogueSession {
             private var reviewPending = false
             private var reviewed = false
             private var currentReview: AppointmentMvpReview? = null
             override val openingText: String =
-                "Dzień dobry, dzwonię w imieniu użytkownika. " + task.goal
+                (if (english) "Hello, I'm calling on behalf of the user. "
+                else "Dzień dobry, dzwonię w imieniu użytkownika. ") + task.goal
             override val approvalPolicy = TextOutputApprovalPolicy { text ->
                 if (!hooks.authorized() || text.isBlank() ||
                     text.contains("[[") || text.contains("]]")) TextOutputDecision.DROP
@@ -70,7 +72,9 @@ internal class AppointmentMvpConversationScenario(
                 model, hooks.authorized, "appointment_authority_revoked",
             ) { userText, plainReply ->
                 if (reviewPending) {
-                    plainReply.onComplete("Dziękuję. Zanotowałam proponowany termin do " +
+                    plainReply.onComplete(if (english)
+                        "Thank you. I noted the proposed time for the user to review."
+                    else "Dziękuję. Zanotowałam proponowany termin do " +
                         "weryfikacji przez użytkownika. Nie potwierdzam rezerwacji.")
                     true
                 } else {
@@ -84,7 +88,9 @@ internal class AppointmentMvpConversationScenario(
             ) {
                 if (field !in task.disclosureFields ||
                     field !in configuration.preparation.dataFields) {
-                    listener.onComplete("Nie mam zgody na przekazanie tej informacji. " +
+                    listener.onComplete(if (english)
+                        "I need permission to share that information. Can we continue without it?"
+                    else "Nie mam zgody na przekazanie tej informacji. " +
                         "Proszę o możliwość kontynuowania bez tych danych.")
                     return
                 }

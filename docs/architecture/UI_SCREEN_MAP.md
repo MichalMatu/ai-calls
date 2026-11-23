@@ -16,7 +16,7 @@ This table lists each entrypoint, its visible controls/sections or diagnostic pu
 | Android entrypoint | Screen / role | Current structure, controls and navigation | Backend or state boundary |
 |---|---|---|---|
 | `.MainActivity` | Home | Start task, task list, notebook, incoming settings, STOP, live overlay | AndroidHomeOverviewReader; campaign service; conversation feed |
-| `.ui.SettingsHubActivity` | Settings | Model and voice, GSM audio, incoming, prompt, permissions, developer/lab; UI language auto/pl/en | AppLanguage; media backend mode; navigation only |
+| `.ui.SettingsHubActivity` | Settings | Model and voice, GSM audio, incoming, prompt, permissions, developer/lab; app and conversation language English/Polish | AppLanguage; media backend mode; navigation only |
 | `.ui.AgentAiHubActivity` | Agent | Skills, scenarios, preparation, identity vault, conversation tools | AndroidAgentHubOverviewReader → AgentHubSummaryFormatter |
 | `.ui.GeneralSettingsActivity` | Settings / Permissions | Dialer role, incoming mode, default apps, app settings; microphone, phone-state, answer, call and notification grants | Android permission/role APIs; IncomingAssistantPolicyStore; GSM readiness |
 | `.ui.DeveloperToolsActivity` | Diagnostics | Developer probes and Lab; supervised pilot where applicable | MainActivityDeveloperProbes; CallMediaBackendMode |

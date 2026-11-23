@@ -29,7 +29,7 @@ internal data class AudioEngineProfile(
     val effectiveTtsEnginePackage: String? get() = ttsEnginePackage
         ?: if (output == SpeechOutputId.PIPER_PL) PiperServiceContract.PACKAGE else null
     companion object {
-        val STABLE = AudioEngineProfile()
+        val STABLE = AudioEngineProfile(languageTag = "en-US")
     }
 }
 
@@ -45,7 +45,7 @@ internal object AudioEngineRegistry {
     val dialogues = listOf(
         AudioEngineChoice(DialogueModelId.GEMMA_4_E2B.name, "Gemma 4 E2B"),
         AudioEngineChoice(DialogueModelId.GEMMA_4_E4B.name, "Gemma 4 E4B"),
-        AudioEngineChoice(DialogueModelId.USER_LITERT.name, "Model z pliku LiteRT-LM"),
+        AudioEngineChoice(DialogueModelId.USER_LITERT.name, "Imported LiteRT-LM model"),
     )
     val outputs = listOf(AudioEngineChoice("ANDROID_TTS_PL", "Android TTS"))
 

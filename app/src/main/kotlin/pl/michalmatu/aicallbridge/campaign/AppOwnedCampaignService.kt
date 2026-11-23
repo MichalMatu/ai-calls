@@ -1,5 +1,6 @@
 package pl.michalmatu.aicallbridge.campaign
 
+import pl.michalmatu.aicallbridge.R
 import pl.michalmatu.aicallbridge.conversationcore.ConversationStopReason
 
 import android.Manifest
@@ -168,9 +169,9 @@ class AppOwnedCampaignService : Service() {
                 var ownedStatus: String? = null
                 AppOwnedClirCampaignExecutor.stop(ConversationStopReason.OPERATOR_STOP) { ownedStatus = it }
                 val status = if (intent.action == ACTION_PAUSE_AFTER_TAKEOVER)
-                    "Rozmowę przekazano użytkownikowi; automatyczne ponowienia wstrzymane"
+                    getString(R.string.campaign_status_takeover)
                 else ownedStatus ?: "STOP AI: app audio stopped; external calls remain untouched"
-                finish(status + if (incomingStopped) "" else "; nie utrwalono wyłączenia sekretarki — błąd zapisu ustawień")
+                finish(status + if (incomingStopped) "" else " " + getString(R.string.campaign_status_incoming_save_failed))
                 return START_NOT_STICKY
             }
         }
@@ -230,7 +231,7 @@ class AppOwnedCampaignService : Service() {
             CampaignStartDisposition.REUSE_SAVED -> Unit // Keep existing due time.
             CampaignStartDisposition.ALREADY_RUNNING -> {
                 if (campaignRequested) {
-                    statusStore.save("Autoryzowana rozmowa już trwa; bez ponownego wybierania numeru")
+                    statusStore.save(getString(R.string.campaign_status_active_exact_call))
                     return START_STICKY
                 }
                 // A recreated Service may not own the old executor's callbacks.
@@ -269,11 +270,11 @@ class AppOwnedCampaignService : Service() {
         if (campaignRequested || supervisedAudioActive.get() ||
             AppOwnedClirCampaignExecutor.isRunning() || continuationStore.load() != null
         ) {
-            statusStore.save("Inne zadanie jest aktywne; najpierw je zakończ")
+            statusStore.save(getString(R.string.campaign_status_other_task))
             return
         }
         val task = AppointmentMvpStore(this).load() ?: run {
-            finish("Nie zapisano zadania wizyty")
+            finish(getString(R.string.campaign_status_appointment_missing))
             return
         }
         val grant = authorizationStore.load()
@@ -282,12 +283,12 @@ class AppOwnedCampaignService : Service() {
             !CampaignAuthorizationPolicy.matchesExactTask(grant, task.request()) ||
             CampaignAccountScope.forSubscription(this, task.subscriptionId) != task.accountScope
         ) {
-            finish("Brak dokładnej autoryzacji numeru i SIM; połączenie zablokowane")
+            finish(getString(R.string.campaign_status_exact_scope_missing))
             return
         }
         val profile = AudioEngineProfileStore(this).load()
         if (profile == null || AudioEngineRegistry.incompatibility(profile) != null) {
-            finish("Wybrany Gemma/STT/TTS jest niedostępny")
+            finish(getString(R.string.campaign_status_engines_missing))
             return
         }
         val userContext = runCatching {
@@ -321,9 +322,9 @@ class AppOwnedCampaignService : Service() {
         campaignRequested = true
         val generation = ++continuationGeneration
         preparingLocalModel = true
-        statusStore.save("Przygotowanie Gemma do autoryzowanej wizyty")
+        statusStore.save(getString(R.string.campaign_status_prepare_appointment))
         startForeground(
-            NOTIFICATION_ID, notification("Przygotowanie rozmowy BOOK_APPOINTMENT"),
+            NOTIFICATION_ID, notification(getString(R.string.campaign_status_appointment_notification)),
             ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE,
         )
         CampaignGemmaDirectPreflight.prepare(
@@ -344,11 +345,11 @@ class AppOwnedCampaignService : Service() {
                         CampaignAccountScope.forSubscription(
                             this, task.subscriptionId) != task.accountScope
                     ) {
-                        finish("Model lub autoryzacja zmieniły się przed wybraniem numeru")
+                        finish(getString(R.string.campaign_status_scope_changed))
                         return@post
                     }
                     if (isPhoneBusy()) {
-                        finish("Trwa inna rozmowa. Bez automatycznej ponownej próby")
+                        finish(getString(R.string.campaign_status_busy_skip))
                         return@post
                     }
                     AppOwnedClirCampaignExecutor.start(
@@ -496,7 +497,7 @@ class AppOwnedCampaignService : Service() {
             return
         }
         val delay = (state.nextAttemptAtEpochMs - System.currentTimeMillis()).coerceAtLeast(0L)
-        statusStore.save("Autoryzowana kontynuacja: następna próba za ${delay / 1_000L} s")
+        statusStore.save(getString(R.string.campaign_status_retry_seconds, delay / 1_000L))
         startForeground(
             NOTIFICATION_ID,
             notification(statusStore.load().orEmpty()),
@@ -641,7 +642,7 @@ class AppOwnedCampaignService : Service() {
     private fun awaitPhoneIdle() {
         if (!awaitingPhoneIdle) {
             awaitingPhoneIdle = true
-            statusStore.save("Autoryzowane zadanie czeka na zakończenie trwającej rozmowy")
+            statusStore.save(getString(R.string.campaign_status_wait_for_call))
         }
         val generation = continuationGeneration
         val retry = Runnable {

@@ -263,8 +263,8 @@ class PhoneTaskQueueTest {
         assertEquals("en", restored.effectiveLanguage())
         val outgoing = restored.scenarioTask(restored.recipients.single(), id())
         assertTrue(outgoing.openingText().startsWith("Hello"))
-        val polishProfile = AudioEngineProfile.STABLE
-        val englishProfile = polishProfile.copy(languageTag = "en-US")
+        val englishProfile = AudioEngineProfile.STABLE
+        val polishProfile = englishProfile.copy(languageTag = "pl-PL")
         assertTrue(restored.matchesSpeechProfile(englishProfile))
         assertFalse(restored.matchesSpeechProfile(polishProfile))
         val english = PhoneTaskInstruction.forTask(restored)

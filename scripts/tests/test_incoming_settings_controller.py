@@ -39,8 +39,8 @@ class IncomingSettingsSeparation(unittest.TestCase):
         self.assertIn('maskPhoneAccountLabel',controller)
 
     def test_all_new_resources_translated(self):
-        pl=ET.parse(ROOT/"res/values/strings.xml").getroot()
-        en=ET.parse(ROOT/"res/values-en/strings.xml").getroot()
+        pl=ET.parse(ROOT/"res/values-pl/strings.xml").getroot()
+        en=ET.parse(ROOT/"res/values/strings.xml").getroot()
         a={x.attrib["name"] for x in pl.findall("string")}
         b={x.attrib["name"] for x in en.findall("string")}
         keys={x for x in a if x.startswith("incoming_ui_")}

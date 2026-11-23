@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="lab_ui_cases_removed">Brak aktywnych testów rozmowy. Poprzednie sztywne historie zostały usunięte. Następny etap: własne, edytowalne i interaktywne testy dialogu.</string>
+</resources>

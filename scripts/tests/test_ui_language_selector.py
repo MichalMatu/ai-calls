@@ -1,4 +1,4 @@
-"""UI language selection: PL/EN/auto, separate from speech and persisted across screens."""
+"""English defaults and coordinated UI/conversation language choices."""
 import xml.etree.ElementTree as ET
 import unittest
 from pathlib import Path
@@ -10,15 +10,18 @@ class LocaleChoiceContract(unittest.TestCase):
         app=ET.parse(ROOT/"AndroidManifest.xml").getroot().find("application")
         self.assertEqual("@xml/locale_config",app.attrib[NS+"localeConfig"])
         cfg=ET.parse(ROOT/"res/xml/locale_config.xml").getroot()
-        self.assertEqual({"pl","en"},{n.attrib[NS+"name"] for n in cfg.findall("locale")})
+        self.assertEqual(["en","pl"],[n.attrib[NS+"name"] for n in cfg.findall("locale")])
     def test_language_is_ui_only_and_available(self):
         locale=(K/"ui/AppLanguage.kt").read_text()
         hub=(K/"ui/SettingsHubActivity.kt").read_text()
         self.assertIn("LocaleManager::class.java",locale)
         self.assertIn("LocaleList.forLanguageTags",locale)
         self.assertIn("AppLanguage.wrap(newBase)",(K/"ui/AppBaseActivity.kt").read_text())
-        for tag in ("auto","pl","en"):
-            self.assertIn('"' + tag + '"',hub)
+        self.assertIn('listOf("en", "pl")', hub)
+        self.assertIn('DEFAULT_LANGUAGE = "en"', locale)
+        self.assertIn('AppLanguage.initialize(this)',(K/"AiCallsApplication.kt").read_text())
+        self.assertIn("if (saveConversationLanguage(requested))", hub)
+        self.assertIn("ModelVoiceSelectionPolicy.forLanguage(previous, tag)", hub)
         self.assertNotIn("CallRuntimePreferences",locale)
         self.assertNotIn("SpeechInputId",locale)
 if __name__=="__main__":unittest.main()

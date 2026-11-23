@@ -30,7 +30,7 @@ class CompactTaskDetailsTest(unittest.TestCase):
         self.assertIn('PhoneTaskState.FINISHED) PhoneTaskState.PAUSED', POLICY)
 
     def test_bilingual_action_labels(self):
-        for name in ("values", "values-en"):
+        for name in ("values", "values-pl"):
             source = (ROOT / "app/src/main/res" / name / "strings.xml").read_text()
             for key in ("task_skip_short", "task_restore", "task_restore_warning",
                         "task_restore_finished_warning", "task_show_details",

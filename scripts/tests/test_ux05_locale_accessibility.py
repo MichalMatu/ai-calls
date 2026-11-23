@@ -7,8 +7,8 @@ import xml.etree.ElementTree as ET
 ROOT = Path(__file__).resolve().parents[2]
 APP = ROOT / "app/src/main"
 KOTLIN = APP / "kotlin/pl/michalmatu/aicallbridge"
-PL = APP / "res/values/strings.xml"
-EN = APP / "res/values-en/strings.xml"
+PL = APP / "res/values-pl/strings.xml"
+EN = APP / "res/values/strings.xml"
 SCREENS = (
     "MainActivity.kt",
     "ui/modelvoice/ModelVoiceSettings.kt",

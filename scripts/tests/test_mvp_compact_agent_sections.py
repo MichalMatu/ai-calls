@@ -45,7 +45,7 @@ class MvpAgentSections(unittest.TestCase):
         root=ROOT.parents[3]/"res"
         # app/src/main/kotlin/... -> app/src/main/res
         root=Path(__file__).resolve().parents[2]/"app/src/main/res"
-        for locale in ("values","values-en"):
+        for locale in ("values","values-pl"):
             values=(root/locale/"strings.xml").read_text()
             for key in ("notebook_ui_show_section","notebook_ui_hide_section"):
                 self.assertIn('name="'+key+'"',values)

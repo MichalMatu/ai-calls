@@ -32,6 +32,7 @@ import pl.michalmatu.aicallbridge.textagent.LanguageModelCatalog
 import pl.michalmatu.aicallbridge.textagent.LanguageModelTransferService
 import pl.michalmatu.aicallbridge.textagent.UserLiteRtModelStore
 import pl.michalmatu.aicallbridge.textagent.LiteRtModelContainer
+import pl.michalmatu.aicallbridge.ui.AppLanguage
 import pl.michalmatu.aicallbridge.ui.UiChromeActivity
 import pl.michalmatu.aicallbridge.ui.UiDesign
 
@@ -158,8 +159,10 @@ internal class ModelVoiceSettings(
 
     private fun showLanguagePicker() {
         ModelVoiceLanguageDialog(activity, draft.languageTag) { selected ->
-            if (selected == draft.languageTag) true
-            else save(ModelVoiceSelectionPolicy.forLanguage(draft, selected))
+            val saved = selected == draft.languageTag ||
+                save(ModelVoiceSelectionPolicy.forLanguage(draft, selected))
+            if (saved) AppLanguage.select(activity, selected.substringBefore('-'))
+            saved
         }.show()
     }
 

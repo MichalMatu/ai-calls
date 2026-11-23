@@ -1,7 +1,7 @@
-# Rozmowa i Test Lab
+# Conversation and offline lab
 
-GSM: PCM → STT → Gemma/Skills → walidacja → TTS/TX. STOP/takeover odcinają TX. `note` jest niezależne od `tool`: po zatwierdzonym TTS aplikacja zapisuje istotne ustalenia przed END_CALL, aktualizując **jedną zaszyfrowaną notatkę** na rozmowę. Notatki domyślnie włączone; wyłączenie respektowane. Sekrety filtrowane; cały transkrypt nie jest notatką. TASK/CALENDAR/MESSAGE to propozycje.
+GSM audio flows from PCM to STT, Gemma with dialogue instructions, approval, then TTS and TX. STOP and takeover revoke TX. After approved TTS, the app can save key details as one encrypted note per conversation before END_CALL. Notes are enabled by default, can be switched off and filter secrets. TASK, CALENDAR and MESSAGE entries are proposals.
 
-Lab offline: `scripts/bin/aicalls` — `lab-start`, `lab-send`, `lab-status`, `lab-stop`, `lab-save`; wejście przez stdin, `--instructions-stdin` i `lab-regression`.
+The offline lab is available through `scripts/bin/aicalls` with `lab-start`, `lab-send`, `lab-status`, `lab-stop`, `lab-save`, `--instructions-stdin` and `lab-regression`.
 
-Ustawienia → Model i głos: PL/EN, E2B/E4B; E4B wymaga testu zgodności. Własne instrukcje zachowują język. Po MVP: dokładność kodów, naturalność wypowiedzi, Gemma Audio/Qwen oraz SIP/Realtime — osobne eksperymenty.
+The app's language selection sets the speech profile and built-in instructions for new calls. User-authored instructions retain their text. E4B requires a compatibility check.

@@ -60,7 +60,7 @@ class AgentAiHubContractTest(unittest.TestCase):
             "ux07_agent_vault_count", "ux07_agent_load_error",
         )
         values = []
-        for locale in ("values", "values-en"):
+        for locale in ("values", "values-pl"):
             root = ET.parse(ROOT / "res" / locale / "ux07_strings.xml").getroot()
             names = {item.attrib["name"]: (item.text or "") for item in root.findall("string")}
             for name in keys:

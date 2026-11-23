@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ux07_preview_scope">Dane i zakres</string>
+    <string name="ux07_preview_prompt">Wynikowy skrypt AI</string>
+    <string name="ux07_preview_count">Skills: %1$d · pola danych: %2$d</string>
+</resources>

@@ -9,7 +9,7 @@ class AudioEngineProfileContractTest {
         assertEquals(SpeechInputId.ANDROID_STT, value.input)
         assertEquals(DialogueModelId.GEMMA_4_E2B, value.dialogue)
         assertEquals(SpeechOutputId.ANDROID_TTS_PL, value.output)
-        assertEquals("pl-PL", value.languageTag)
+        assertEquals("en-US", value.languageTag)
         assertNull(value.voiceId)
         assertNull(AudioEngineRegistry.incompatibility(value))
     }

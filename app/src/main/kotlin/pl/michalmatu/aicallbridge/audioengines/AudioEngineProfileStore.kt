@@ -17,7 +17,7 @@ internal class AudioEngineProfileStore(
 
     fun load(): AudioEngineProfile? {
         if (!prefs.contains("version")) {
-            // No previous preference means migration to the unchanged shipped baseline.
+            // An empty store uses the current baseline. Saved profiles keep their language.
             // A partially/corruptly populated preference must not silently downgrade.
             return if (listOf("input", "dialogue", "output", "language", "voice", "custom_model_id", "tts_engine",
                     "model_context", "model_output", "model_temperature", "model_top_k", "model_top_p")

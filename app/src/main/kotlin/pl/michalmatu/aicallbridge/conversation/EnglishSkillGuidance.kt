@@ -47,8 +47,11 @@ internal object EnglishSkillGuidance {
             val english = standard[key]
             val isFactoryText = defaults != null && english != null &&
                 entry.instructions == defaults.second
-            val title = if (isFactoryText && entry.name == defaults?.first) english!!.first
-                else entry.name
+            val title = when {
+                entry.id == ConversationSkillLibrary.PERSONAL_INSTRUCTIONS_ID -> "Personal instructions"
+                isFactoryText && entry.name == defaults?.first -> english!!.first
+                else -> entry.name
+            }
             val instructions = if (isFactoryText) english!!.second else entry.instructions
             "- $title (${entry.id} v${entry.version}): $instructions"
         }

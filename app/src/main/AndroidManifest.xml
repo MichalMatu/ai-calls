@@ -36,6 +36,7 @@
          runtime permission. -->
 
     <application
+        android:name=".AiCallsApplication"
         android:allowBackup="false"
         android:label="AI Calls"
         android:supportsRtl="true"

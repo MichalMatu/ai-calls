@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+<string name="lab_model_settings">Wybierz model / profil</string>
+<string name="lab_model_selected">Model: %1$s</string>
+<string name="lab_model_unavailable">brak profilu</string>
+</resources>
