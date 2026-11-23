@@ -1,9 +1,7 @@
-# Rozwój i QA
+# Budowanie i odbiór
 
-Stałe gałęzie: `main` (kod) i `agent-control` (zadania Local Agenta). Krótką gałąź roboczą usuwaj po PR/merge. Nie nadpisuj lokalnych zmian. [Tryb Mac](LOCAL_AGENT.md).
+`main`: kod MVP; `agent-control`: zadania i raporty Mac Local Agenta. Testy: `scripts/bin/test-profile.sh preflight|quick|full|device-build`. Każdy PASS dotyczy konkretnego SHA.
 
-`scripts/bin/test-profile.sh`: `preflight` — diff/dokumentacja/moduły; `quick` — JVM; `full` — host/lint/Python; `device-build` — APK; `lab-ui` — emulator, nie telefon. Każdy wynik dotyczy konkretnego SHA i zakresu.
+Wydania: wersja SemVer, rosnący `versionCode`, GitHub Release, podpisany APK i SHA256. Nie nadpisywać opublikowanych paczek.
 
-Wydania: `versionName` SemVer, rosnący `versionCode`, tag `vX.Y.Z`, APK `ai-calls-vX.Y.Z.apk`, SHA256 i krótka lista zmian. Publikuj po QA, nie podmieniaj opublikowanych paczek. Bez Actions.
-
-S22+ testuj dopiero po sprawdzeniu stanu IDLE, podpisu/SHA APK, hosta UID 2000/Binder i rollbacku. Rozmowy tylko po zgodzie, z exact Call/SIM, STOP/takeover i END_CALL po TTS. Wyniki oraz otwarte bramki zapisuj w [PROJECT](../PROJECT.md).
+S22+: przed instalacją sprawdzić IDLE, podpis, kopię poprzedniej wersji i host Binder. Bez autoryzacji nie wykonywać rzeczywistych połączeń GSM. Wersja testowa `.s8lab` instaluje się obok głównej aplikacji. [Stan MVP](../PROJECT.md).
