@@ -19,17 +19,24 @@ public final class GsmShellExternalProviderClient implements AutoCloseable {
     private final Object provider;
     private final IBinder token;
     private final Method call;
+    private final String authority;
     private boolean closed;
 
     private GsmShellExternalProviderClient(Object manager, Object provider,
-                                           IBinder token, Method call) {
+                                           IBinder token, Method call, String authority) {
         this.manager = manager;
         this.provider = provider;
         this.token = token;
         this.call = call;
+        this.authority = authority;
     }
 
     public static GsmShellExternalProviderClient acquire() throws Exception {
+        return acquire(GsmShellMediaProtocol.S8_PACKAGE);
+    }
+
+    public static GsmShellExternalProviderClient acquire(String packageName) throws Exception {
+        String authority = GsmShellBinderRegistryProvider.authorityFor(packageName);
         if (Process.myUid() != GsmShellMediaProtocol.SHELL_UID)
             throw new SecurityException("gsm_shell_uid_required");
         Class<?> activityManager = Class.forName("android.app.ActivityManager");
@@ -39,17 +46,17 @@ public final class GsmShellExternalProviderClient implements AutoCloseable {
         IBinder token = new Binder();
         Method acquire = find(manager.getClass(), "getContentProviderExternal", 4);
         Object holder = acquire.invoke(manager,
-            GsmShellBinderRegistryProvider.AUTHORITY, 0, token, "*aicalls-gsm*");
+            authority, 0, token, "*aicalls-gsm*");
         if (holder == null) throw new IllegalStateException("gsm_shell_provider_not_found");
         try {
             Field field = holder.getClass().getDeclaredField("provider");
             field.setAccessible(true);
             Object provider = field.get(holder);
             return new GsmShellExternalProviderClient(
-                manager, provider, token, find(provider.getClass(), "call", 5));
+                manager, provider, token, find(provider.getClass(), "call", 5), authority);
         } catch (Exception | Error error) {
             find(manager.getClass(), "removeContentProviderExternalAsUser", 3).invoke(
-                manager, GsmShellBinderRegistryProvider.AUTHORITY, token, 0);
+                manager, authority, token, 0);
             throw error;
         }
     }
@@ -75,7 +82,7 @@ public final class GsmShellExternalProviderClient implements AutoCloseable {
         Object attribution = ctor.newInstance(
             GsmShellMediaProtocol.SHELL_UID, "com.android.shell", null);
         return (Bundle) call.invoke(provider, attribution,
-            GsmShellBinderRegistryProvider.AUTHORITY, operation, null, extras);
+            authority, operation, null, extras);
     }
 
     @Override public synchronized void close() {
@@ -83,7 +90,7 @@ public final class GsmShellExternalProviderClient implements AutoCloseable {
         closed = true;
         try {
             find(manager.getClass(), "removeContentProviderExternalAsUser", 3).invoke(
-                manager, GsmShellBinderRegistryProvider.AUTHORITY, token, 0);
+                manager, authority, token, 0);
         } catch (Exception ignored) {
             // Closing the host always aborts PCM, even if Android Binder died.
         }
