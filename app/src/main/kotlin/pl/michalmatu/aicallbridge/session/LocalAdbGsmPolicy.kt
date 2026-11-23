@@ -5,7 +5,7 @@ internal object LocalAdbGsmPolicy {
     const val LOOPBACK = "127.0.0.1"
     const val STATUS = "content call --uri content://pl.michalmatu.aicallbridge.s8lab.gsmbinder --method status"
     const val START = "sh -c 'APP=pl.michalmatu.aicallbridge.s8lab; " +
-        "APK=\"\$(pm path \"\$APP\" | sed -n \"s/^package://p\" | head -n 1)\"; " +
+        "APK=\"\$(pm path --user 0 \"\$APP\" | sed -n \"s/^package://p\" | head -n 1)\"; " +
         "test -n \"\$APK\" && test -r \"\$APK\" || exit 7; " +
         "CLASSPATH=\"\$APK\" nohup app_process /system/bin " +
         "--nice-name=aicalls_gsm_binder pl.michalmatu.aicallbridge.session.GsmShellBinderMediaHost " +
