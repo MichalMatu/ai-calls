@@ -369,18 +369,8 @@ class PhoneTaskWizardActivity : UiChromeActivity(AppTab.HOME) {
         false
     }
 
-    private fun buildTask(now: Long, speechLanguage: String? = null): PhoneTask {
-        val zone = ZoneId.of(draft.zoneId)
-        val start = if (draft.scheduled) PhoneTaskInput.instant(LocalDateTime.parse(draft.startLocal), zone) else now
-        require(!draft.scheduled || start > now)
-        val end = PhoneTaskInput.instant(LocalDateTime.parse(draft.endLocal), zone)
-        val delay = if (draft.retry) Math.multiplyExact(draft.retryMinutes.toLong(), 60_000L).also { require(it > 0) } else null
-        return PhoneTask(draft.id, draft.title, draft.scenarioId, draft.goal, brief(),
-            requireNotNull(draft.subscriptionId), requireNotNull(draft.accountScope), start, end,
-            draft.zoneId, delay, now, PhoneTaskInput.recipients(draft.recipients).values,
-            language = speechLanguage,
-            recordAudio = draft.recordAudio).validated()
-    }
+    private fun buildTask(now: Long, speechLanguage: String? = null): PhoneTask =
+        PhoneTaskApprovalFactory.build(draft, brief(), now, speechLanguage)
 
     private fun approve() {
         if (saving || approved) return
