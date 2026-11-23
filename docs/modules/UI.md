@@ -1,8 +1,5 @@
-# UI
+# Interfejs
 
-S22+ (wydanie testowe): AI/MANUAL, STOP/takeover dla własnego Call. Outgoing: cel → odbiorcy → SIM/okno → zgoda. Historia, notatki i nagrania prywatne; profile PL/EN.
+MVP na S22+: Home, History, Agent, Settings; w rozmowie AI/MANUAL, STOP/takeover. Outgoing: cel → odbiorcy → SIM/okno → zgoda. Historia, szyfrowane notatki, WAV, profile PL/EN.
 
-Ustawienia → GSM audio: status hosta i ADB; **Zarządzaj parowaniem** otwiera pole kodu. Kod można też wysłać z szuflady powiadomień. Start hosta jest osobną akcją. [Handoff i screenshoty](../operations/HANDOFF_NEXT_CHAT.md).
-
-
-Pełna mapa 34 Activity, ekranów zagnieżdżonych, przycisków, dialogów, ustawień i granic dla Compose: [UI screen map](../architecture/UI_SCREEN_MAP.md).
+W **Ustawienia → GSM audio** dostępne są stan hosta ADB, zarządzanie parowaniem i ręczny start hosta. Pełny spis 34 Activity, nawigacji i ustawień: [Mapa UI](../architecture/UI_SCREEN_MAP.md).
