@@ -14,6 +14,7 @@ import pl.michalmatu.aicallbridge.conversation.LiveConversationOverlay
 import pl.michalmatu.aicallbridge.session.LocalAdbGsmSetupActivity
 import pl.michalmatu.aicallbridge.conversation.ConversationHistoryActivity
 import pl.michalmatu.aicallbridge.ui.*
+import pl.michalmatu.aicallbridge.presentation.tasks.PhoneTaskListController
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -126,11 +127,8 @@ class PhoneTasksActivity : UiChromeActivity(AppTab.HOME) {
                 startActivity(Intent(this, PhoneTaskWizardActivity::class.java))
             }, UiDesign.spaceAfter(this, 16))
             if (tasks.isEmpty()) body.addView(UiDesign.caption(this, getString(R.string.task_empty)))
-            val now = System.currentTimeMillis()
-            for (group in PhoneTaskManagement.Group.entries) {
-                val members = tasks.filter { PhoneTaskManagement.group(it, now) == group }
-                    .sortedByDescending { it.approvedAt }
-                if (members.isEmpty()) continue
+            for (section in PhoneTaskListController.sections(tasks, System.currentTimeMillis())) {
+                val group = section.group
                 val title = when (group) {
                     PhoneTaskManagement.Group.CURRENT -> R.string.task_group_current
                     PhoneTaskManagement.Group.SCHEDULED -> R.string.task_group_scheduled
@@ -140,7 +138,7 @@ class PhoneTasksActivity : UiChromeActivity(AppTab.HOME) {
                     tag = "task-group:" + group.name.lowercase()
                     textSize = 17f
                 }, UiDesign.spaceAfter(this, 10))
-                members.forEach { value ->
+                section.tasks.forEach { value ->
                     body.addView(UiDesign.navigationRow(this, value.title, UiDesign.caption(this,
                         getString(PhoneTaskLabels.state(value)) + " · " + getString(R.string.task_progress,
                             value.recipients.count { it.state !in setOf(PhoneRecipientState.QUEUED, PhoneRecipientState.IN_FLIGHT) },
@@ -244,11 +242,7 @@ class PhoneTasksActivity : UiChromeActivity(AppTab.HOME) {
     private fun copyTask(task: PhoneTask) {
         PhoneTaskWork.io.execute {
             val result = runCatching {
-                PhoneTaskWork.store(this).savePhoneTaskDraft(PhoneTaskDraft(scenarioId = task.scenarioId,
-                    title = task.title, goal = task.goal, suppliedBrief = task.brief,
-                    recipients = task.recipients.joinToString("\n") { it.name + "; " + it.number },
-                    subscriptionId = task.subscriptionId, accountScope = task.accountScope,
-                    recordAudio = task.recordAudio))
+                PhoneTaskWork.store(this).savePhoneTaskDraft(PhoneTaskListController.duplicateDraft(task))
             }
             runOnUiThread {
                 if (isDestroyed || isFinishing) return@runOnUiThread
