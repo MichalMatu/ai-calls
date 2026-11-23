@@ -38,6 +38,18 @@ class LocalAdbGsmPolicyTest {
         assertFalse(LocalAdbGsmPolicy.START.contains("su -c"))
         assertFalse(LocalAdbGsmPolicy.START.contains("pm install"))
         assertFalse(LocalAdbGsmPolicy.START.contains("shizuku"))
+        val production = GsmShellMediaProtocol.APP_PACKAGE
+        val lab = GsmShellMediaProtocol.S8_PACKAGE
+        assertEquals(LocalAdbGsmPolicy.START, LocalAdbGsmPolicy.startFor(lab))
+        assertEquals(LocalAdbGsmPolicy.STATUS, LocalAdbGsmPolicy.statusFor(lab))
+        assertTrue(LocalAdbGsmPolicy.startFor(production).contains("APP=pl.michalmatu.aicallbridge;"))
+        assertTrue(LocalAdbGsmPolicy.startFor(production).contains(
+            "GsmShellBinderMediaHost pl.michalmatu.aicallbridge "))
+        assertTrue(LocalAdbGsmPolicy.startFor(production).contains("pm path --user 0"))
+        assertTrue(LocalAdbGsmPolicy.statusFor(production).contains(
+            "content://pl.michalmatu.aicallbridge.gsmbinder"))
+        assertThrows(SecurityException::class.java) { LocalAdbGsmPolicy.startFor("com.other.app") }
+        assertThrows(SecurityException::class.java) { LocalAdbGsmPolicy.statusFor("com.other.app") }
         assertEquals("127.0.0.1", LocalAdbGsmPolicy.LOOPBACK)
         assertTrue(LocalAdbGsmPolicy.hostRegistered("Result: Bundle[{host_registered=true}]"))
         assertFalse(LocalAdbGsmPolicy.hostRegistered("Result: Bundle[{host_registered=false}]"))
