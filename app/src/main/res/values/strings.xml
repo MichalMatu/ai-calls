@@ -106,11 +106,14 @@
     <string name="incoming_ui_gsm_host_ready">Audio GSM: gotowe.</string>
     <string name="local_adb_open">Audio GSM</string>
     <string name="local_adb_title">Audio GSM</string>
-    <string name="local_adb_status_title">Stan połączenia</string>
+    <string name="local_adb_pairing_step">1. Sparuj Wireless ADB</string>
+    <string name="local_adb_host_step">2. Uruchom audio GSM</string>
+    <string name="local_adb_host_detail">Po połączeniu ADB uruchom host audio GSM, gdy telefon jest bez aktywnego połączenia. Oba statusy potwierdzą gotowość.</string>
     <string name="local_adb_status_checking">ADB: sprawdzanie stanu…</string>
     <string name="local_adb_refresh">Odśwież stan</string>
     <string name="local_adb_repair">Sparuj ponownie</string>
-    <string name="local_adb_manage_pairing">Parowanie ADB</string>
+    <string name="local_adb_manage_pairing">Wpisz kod w aplikacji</string>
+    <string name="local_adb_manual_detail">W trybie podzielonego ekranu pozostaw otwarte okno kodu Androida i przepisz sześć cyfr poniżej.</string>
     <string name="local_adb_gsm_ready">Audio GSM: gotowe</string>
     <string name="local_adb_gsm_offline">Audio GSM: niedostępne</string>
     <string name="local_adb_connected">ADB: połączono i autoryzowano</string>
@@ -118,7 +121,7 @@
     <string name="local_adb_debug_off">ADB: debugowanie wyłączone</string>
     <string name="local_adb_unpaired">ADB: nie sparowano</string>
     <string name="local_adb_status_unavailable">ADB: nie można sprawdzić stanu</string>
-    <string name="local_adb_intro">Pierwsze parowanie: włącz debugowanie bezprzewodowe i wybierz w Androidzie „Sparuj urządzenie kodem”. Nie zamykając okna, rozwiń powiadomienie AI Calls i wpisz kod. Porty wykrywane są automatycznie.</string>
+    <string name="local_adb_intro">W Androidzie włącz Debugowanie bezprzewodowe i wybierz „Sparuj urządzenie kodem parowania”. Zostaw otwarte okno kodu, rozwiń górną szufladę i w powiadomieniu AI Calls wybierz „Wpisz kod”.</string>
     <string name="local_adb_open_settings">Rozpocznij parowanie w Androidzie</string>
     <string name="local_adb_notification_title">AI Calls — parowanie GSM</string>
     <string name="local_adb_notification_howto">Zostaw otwarte okno kodu w Androidzie. Rozwiń powiadomienie i wybierz „Wpisz kod”.</string>
@@ -128,7 +131,7 @@
     <string name="local_adb_pair_code">Kod parowania (6 cyfr)</string>
     <string name="local_adb_pair">Sparuj lokalne ADB</string>
     <string name="local_adb_start">Uruchom host audio GSM</string>
-    <string name="local_adb_paired">Sparowano. Host jeszcze nie odpowiada — możesz ponownie wybrać „Uruchom audio GSM”.</string>
+    <string name="local_adb_paired">Sparowano. Wybierz „Uruchom host audio GSM”.</string>
     <string name="local_adb_ready">Host GSM uruchomiony i potwierdzony.</string>
     <string name="local_adb_ready_existing">Host GSM już działa.</string>
     <string name="local_adb_invalid">Wpisz sześciocyfrowy kod parowania.</string>
@@ -782,7 +785,12 @@
     <string name="perm_answer_phone_title">Odbieranie połączeń</string>
     <string name="perm_default_apps_action">Aplikacje domyślne Androida</string>
     <string name="perm_app_settings_action">Informacje o AI Calls w Androidzie</string>
-    <string name="perm_incoming_ai_action">Sekretarka GSM — tryb i karta SIM</string>
+    <string name="perm_setup_phone">1. Domyślna aplikacja Telefon</string>
+    <string name="perm_setup_grants">2. Uprawnienia aplikacji</string>
+    <string name="perm_setup_grants_detail">Zezwól na dostęp do telefonu i mikrofonu, żeby obsługiwać połączenia. Powiadomienia pozwalają wpisać kod parowania ADB w górnej szufladzie.</string>
+    <string name="perm_setup_audio">3. Audio GSM</string>
+    <string name="perm_incoming_ai_action">4. Karta SIM i odbieranie</string>
+    <string name="perm_setup_incoming_detail">Wybierz kartę SIM i zapisz tryb odbierania. %1$s</string>
     <string name="perm_incoming_mode_ai">Tryb odbierania: AI</string>
     <string name="perm_incoming_mode_manual">Tryb odbierania: ręczny</string>
     <string name="perm_incoming_mode_unavailable">Nie można odczytać trybu odbierania</string>
@@ -791,7 +799,7 @@
     <string name="perm_action_allow">Przyznaj dostęp</string>
     <string name="perm_action_settings">Otwórz ustawienia Androida</string>
     <string name="perm_call_phone_title">Wykonywanie połączeń</string>
-    <string name="perm_notifications_title">Powiadomienia (opcjonalne)</string>
+    <string name="perm_notifications_title">Powiadomienia do parowania ADB</string>
     <string name="perm_gsm_shell_ready">Audio GSM gotowe</string>
     <string name="perm_gsm_shell_offline">Sparuj ADB bezprzewodowo i uruchom host audio GSM.</string>
 

@@ -5,7 +5,7 @@ ROOT=Path(__file__).resolve().parents[2]/"app/src/main/kotlin/pl/michalmatu/aica
 class PermissionSettingsContract(unittest.TestCase):
     def test_permissions_have_explicit_actions_without_legacy_engine_preferences(self):
         activity=(ROOT/"ui/GeneralSettingsActivity.kt").read_text()
-        self.assertIn("DialerRoleCard(this)",activity)
+        self.assertIn("DialerRoleCard(this, titleRes = R.string.perm_setup_phone)",activity)
         self.assertIn("requestPermissions",activity)
         for old in ("CallRuntimePreferences", "CallAudioMode", "TextLlmProvider", "selectTextModel", "selectMode"):
             self.assertNotIn(old,activity)

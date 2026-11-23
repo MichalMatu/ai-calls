@@ -12,6 +12,7 @@ import pl.michalmatu.aicallbridge.R
 internal class DialerRoleCard(
     private val activity: ComponentActivity,
     private val showOnlyWhenMissing: Boolean = false,
+    titleRes: Int = R.string.role_ui_title,
 ) {
     val view: LinearLayout = UiDesign.card(activity).apply { tag = "dialer-role-card" }
     private val status = UiDesign.caption(activity, "").apply {
@@ -41,7 +42,7 @@ internal class DialerRoleCard(
     }.apply { tag = "dialer-role-request" }
 
     init {
-        view.addView(UiDesign.heading(activity, activity.getString(R.string.role_ui_title)).apply {
+        view.addView(UiDesign.heading(activity, activity.getString(titleRes)).apply {
             textSize = 16f
         },
             UiDesign.spaceAfter(activity, 6))

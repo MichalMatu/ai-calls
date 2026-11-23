@@ -31,6 +31,7 @@ class SettingsHubActivity : AppBaseActivity() {
             }
             content.addView(line, UiDesign.spaceAfter(this, UiDesign.GAP_CARD))
         }
+        destination(R.string.mv_permissions, GeneralSettingsActivity::class.java)
         destination(R.string.mv_title, LanguageModelActivity::class.java)
         // One shared GSM audio transport serves both incoming and outgoing calls.
         if (CallMediaBackendMode.forPackage(packageName) == CallMediaBackendMode.GSM_SHELL_ADB) {
@@ -38,7 +39,6 @@ class SettingsHubActivity : AppBaseActivity() {
         }
         destination(R.string.incoming_ui_title, IncomingAssistantSettingsActivity::class.java)
         destination(R.string.prompt_settings_title, ConversationPromptSettingsActivity::class.java)
-        destination(R.string.mv_permissions, GeneralSettingsActivity::class.java)
         if (CallMediaBackendMode.forPackage(packageName) != CallMediaBackendMode.GSM_SHELL_ADB) {
             destination(R.string.ui_settings_hub_developer, DeveloperToolsActivity::class.java)
         } else if (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0) {

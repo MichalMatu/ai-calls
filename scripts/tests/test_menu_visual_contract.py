@@ -17,7 +17,7 @@ class MenuVisualSourceContract(unittest.TestCase):
         self.assertFalse(any("AudioEngineSettingsActivity::class.java" in x for x in destinations))
         self.assertIn("GeneralSettingsActivity::class.java",source)
         permissions=(ROOT/"ui/GeneralSettingsActivity.kt").read_text()
-        self.assertIn("DialerRoleCard(this)",permissions)
+        self.assertIn("DialerRoleCard(this, titleRes = R.string.perm_setup_phone)",permissions)
         self.assertNotIn("TextLlmProvider",permissions)
         self.assertNotIn("CallAudioMode",permissions)
     def test_four_primary_tabs_and_system_insets_are_preserved(self):

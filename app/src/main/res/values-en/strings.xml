@@ -745,7 +745,12 @@
     <string name="perm_answer_phone_title">Answering calls</string>
     <string name="perm_default_apps_action">Android default apps</string>
     <string name="perm_app_settings_action">AI Calls app info in Android</string>
-    <string name="perm_incoming_ai_action">GSM assistant — mode and SIM</string>
+    <string name="perm_setup_phone">1. Default Phone app</string>
+    <string name="perm_setup_grants">2. App permissions</string>
+    <string name="perm_setup_grants_detail">Allow phone and microphone access to handle calls. Notifications let you enter the ADB pairing code from the notification shade.</string>
+    <string name="perm_setup_audio">3. GSM audio</string>
+    <string name="perm_incoming_ai_action">4. SIM and call answering</string>
+    <string name="perm_setup_incoming_detail">Choose a SIM and save the answering mode. %1$s</string>
     <string name="perm_incoming_mode_ai">Answering mode: AI</string>
     <string name="perm_incoming_mode_manual">Answering mode: manual</string>
     <string name="perm_incoming_mode_unavailable">Unable to read answering mode</string>
@@ -754,7 +759,7 @@
     <string name="perm_action_allow">Grant access</string>
     <string name="perm_action_settings">Open Android settings</string>
     <string name="perm_call_phone_title">Placing calls</string>
-    <string name="perm_notifications_title">Notifications (optional)</string>
+    <string name="perm_notifications_title">Notifications for ADB pairing</string>
     <string name="perm_gsm_shell_ready">GSM audio ready</string>
     <string name="perm_gsm_shell_offline">Pair Wireless ADB and start the GSM audio host.</string>
 
@@ -892,11 +897,14 @@
     <string name="incoming_ui_gsm_host_ready">GSM audio: ready.</string>
     <string name="local_adb_open">GSM audio</string>
     <string name="local_adb_title">GSM audio</string>
-    <string name="local_adb_status_title">Connection status</string>
+    <string name="local_adb_pairing_step">1. Pair Wireless ADB</string>
+    <string name="local_adb_host_step">2. Start GSM audio</string>
+    <string name="local_adb_host_detail">Once ADB is connected, start the GSM audio host while the phone is idle. Both statuses show when setup is ready.</string>
     <string name="local_adb_status_checking">ADB: checking status…</string>
     <string name="local_adb_refresh">Refresh status</string>
     <string name="local_adb_repair">Pair again</string>
-    <string name="local_adb_manage_pairing">ADB pairing</string>
+    <string name="local_adb_manage_pairing">Enter code in the app</string>
+    <string name="local_adb_manual_detail">In split-screen mode, keep the Android pairing window open and enter its six-digit code below.</string>
     <string name="local_adb_gsm_ready">GSM audio: ready</string>
     <string name="local_adb_gsm_offline">GSM audio: unavailable</string>
     <string name="local_adb_connected">ADB: connected and authorized</string>
@@ -904,7 +912,7 @@
     <string name="local_adb_debug_off">ADB: wireless debugging disabled</string>
     <string name="local_adb_unpaired">ADB: not paired</string>
     <string name="local_adb_status_unavailable">ADB: unable to check status</string>
-    <string name="local_adb_intro">First pairing: enable Wireless debugging, then select Pair device with pairing code in Android. Keep the pairing window open, expand the AI Calls notification and enter the code. Ports are detected automatically.</string>
+    <string name="local_adb_intro">In Android, enable Wireless debugging and select Pair device with pairing code. Keep the code window open, pull down the notification shade and select Enter code in the AI Calls notification.</string>
     <string name="local_adb_open_settings">Start pairing in Android</string>
     <string name="local_adb_notification_title">AI Calls — GSM pairing</string>
     <string name="local_adb_notification_howto">Keep the Android pairing code window open. Expand this notification and select Enter code.</string>
@@ -914,7 +922,7 @@
     <string name="local_adb_pair_code">Pairing code (6 digits)</string>
     <string name="local_adb_pair">Pair local ADB</string>
     <string name="local_adb_start">Start GSM audio host</string>
-    <string name="local_adb_paired">Paired. The host is not responding yet. You can select Start GSM audio again.</string>
+    <string name="local_adb_paired">Paired. Select Start GSM audio host.</string>
     <string name="local_adb_ready">GSM host started and verified.</string>
     <string name="local_adb_ready_existing">GSM host is already running.</string>
     <string name="local_adb_invalid">Enter the six-digit pairing code.</string>

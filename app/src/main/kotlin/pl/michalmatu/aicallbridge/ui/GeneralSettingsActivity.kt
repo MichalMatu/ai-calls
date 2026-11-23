@@ -33,42 +33,28 @@ class GeneralSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         val action: Button,
     )
     private lateinit var role: DialerRoleCard
-    private lateinit var incomingModeStatus: TextView
+    private lateinit var incomingOverview: Pair<View, TextView>
     private val grants = linkedMapOf<String, GrantRow>()
     private var gsmAudioOverview: Pair<View, TextView>? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val body = UiDesign.content(this)
-        role = DialerRoleCard(this)
+        role = DialerRoleCard(this, titleRes = R.string.perm_setup_phone)
         body.addView(role.view, UiDesign.spaceAfter(this, 8))
 
-        // All GSM setup actions belong to this existing permissions screen.
-        // Android always asks the user to approve roles and runtime permissions.
-        incomingModeStatus = UiDesign.caption(this, "")
-        body.addView(UiDesign.navigationRow(this,
-            getString(R.string.perm_incoming_ai_action), incomingModeStatus) {
-            startActivity(Intent(this, IncomingAssistantSettingsActivity::class.java))
-        }.apply { tag = "permissions-incoming-ai-settings" }, UiDesign.spaceAfter(this, 8))
-        body.addView(UiDesign.navigationRow(this, getString(R.string.perm_default_apps_action)) {
-            openDefaultAppsSettings()
-        }.apply { tag = "permissions-default-apps" }, UiDesign.spaceAfter(this, 8))
         body.addView(UiDesign.navigationRow(this, getString(R.string.perm_app_settings_action)) {
             openAppSettings()
         }.apply { tag = "permissions-app-details" }, UiDesign.spaceAfter(this, 8))
-        if (CallMediaBackendMode.forPackage(packageName) == CallMediaBackendMode.GSM_SHELL_ADB) {
-            val status = UiDesign.caption(this, "").apply {
-                tag = "permissions-gsm-shell-status"
-                accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
-            }
-            val row = UiDesign.navigationRow(this, getString(R.string.local_adb_open), status) {
-                startActivity(Intent(this, LocalAdbGsmSetupActivity::class.java))
-            }.apply { tag = "permissions-gsm-shell" }
-            gsmAudioOverview = row to status
-            body.addView(row, UiDesign.spaceAfter(this, 16))
-        }
+        body.addView(UiDesign.navigationRow(this, getString(R.string.perm_default_apps_action)) {
+            openDefaultAppsSettings()
+        }.apply { tag = "permissions-default-apps" }, UiDesign.spaceAfter(this, 12))
 
         val card = UiDesign.card(this).apply { tag = "permissions-grants-card" }
+        card.addView(UiDesign.heading(this, getString(R.string.perm_setup_grants)),
+            UiDesign.spaceAfter(this, 6))
+        card.addView(UiDesign.caption(this, getString(R.string.perm_setup_grants_detail)),
+            UiDesign.spaceAfter(this, 12))
         fun group(tag: String, label: String): Pair<LinearLayout, LinearLayout> {
             val block = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
@@ -102,10 +88,10 @@ class GeneralSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
             grants[permission] = GrantRow(permission, status, button)
         }
 
-        runtime("microphone", R.string.perm_microphone_title,
-            Manifest.permission.RECORD_AUDIO, R.string.perm_action_allow, REQUEST_MIC)
         runtime("phone-state", R.string.perm_phone_state_title,
             Manifest.permission.READ_PHONE_STATE, R.string.perm_action_allow, REQUEST_PHONE_STATE)
+        runtime("microphone", R.string.perm_microphone_title,
+            Manifest.permission.RECORD_AUDIO, R.string.perm_action_allow, REQUEST_MIC)
         runtime("answer-phone", R.string.perm_answer_phone_title,
             Manifest.permission.ANSWER_PHONE_CALLS, R.string.perm_action_allow, REQUEST_ANSWER_PHONE)
         runtime("call-phone", R.string.perm_call_phone_title,
@@ -115,7 +101,26 @@ class GeneralSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
                 Manifest.permission.POST_NOTIFICATIONS, R.string.perm_action_allow, REQUEST_NOTIFICATIONS)
         }
 
-        body.addView(card)
+        body.addView(card, UiDesign.spaceAfter(this, 12))
+
+        if (CallMediaBackendMode.forPackage(packageName) == CallMediaBackendMode.GSM_SHELL_ADB) {
+            val status = UiDesign.caption(this, "").apply {
+                tag = "permissions-gsm-shell-status"
+                accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
+            }
+            val row = UiDesign.navigationRow(this, getString(R.string.perm_setup_audio), status) {
+                startActivity(Intent(this, LocalAdbGsmSetupActivity::class.java))
+            }.apply { tag = "permissions-gsm-shell" }
+            gsmAudioOverview = row to status
+            body.addView(row, UiDesign.spaceAfter(this, 12))
+        }
+        val incomingStatus = UiDesign.caption(this, "")
+        val incomingRow = UiDesign.navigationRow(this,
+            getString(R.string.perm_incoming_ai_action), incomingStatus) {
+            startActivity(Intent(this, IncomingAssistantSettingsActivity::class.java))
+        }.apply { tag = "permissions-incoming-ai-settings" }
+        incomingOverview = incomingRow to incomingStatus
+        body.addView(incomingRow)
         setContentView(ScrollView(this).apply { addView(body) })
         refresh()
     }
@@ -166,12 +171,16 @@ class GeneralSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
 
     private fun refresh() {
         role.refresh()
-        incomingModeStatus.setText(runCatching {
+        val mode = runCatching {
             when (IncomingAssistantPolicyStore(this).load().mode) {
                 AnsweringMode.AI -> R.string.perm_incoming_mode_ai
                 AnsweringMode.MANUAL -> R.string.perm_incoming_mode_manual
             }
-        }.getOrDefault(R.string.perm_incoming_mode_unavailable))
+        }.getOrDefault(R.string.perm_incoming_mode_unavailable)
+        val (incomingRow, incomingStatus) = incomingOverview
+        incomingStatus.text = getString(R.string.perm_setup_incoming_detail, getString(mode))
+        incomingRow.contentDescription =
+            "${getString(R.string.perm_incoming_ai_action)}. ${incomingStatus.text}"
         grants.values.forEach { row ->
             val isGranted = granted(row.permission)
             row.status.setText(if (isGranted) R.string.perm_status_granted
@@ -185,7 +194,7 @@ class GeneralSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         gsmAudioOverview?.let { (row, status) ->
             status.setText(if (GsmMediaTransportReadiness.isAvailable(this))
                 R.string.perm_gsm_shell_ready else R.string.perm_gsm_shell_offline)
-            row.contentDescription = "${getString(R.string.local_adb_open)}. ${status.text}"
+            row.contentDescription = "${getString(R.string.perm_setup_audio)}. ${status.text}"
         }
     }
 
