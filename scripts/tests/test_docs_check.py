@@ -80,7 +80,7 @@ class DocumentationContractTest(unittest.TestCase):
             root = Path(d)
             self.fixture(root)
             reference = root / "docs/architecture/UI_SCREEN_MAP.md"
-            reference.write_text("# UI inventory\\n" + "x" * UI_REFERENCE_MAX_BYTES)
+            reference.write_text("# UI inventory\n" + "x" * UI_REFERENCE_MAX_BYTES)
             errors = check(root)
             self.assertTrue(any(
                 "docs/architecture/UI_SCREEN_MAP.md: file budget exceeded" in e
@@ -103,19 +103,25 @@ class DocumentationContractTest(unittest.TestCase):
             self.fixture(root)
             # Grow only to the warning zone, independent of the live docs baseline.
             for path in (root / "docs").rglob("*.md"):
-                if path.name != "README.md":
+                if path.name == "PROJECT.md":
+                    path.write_text("# Project budget fixture\n\n## Następny sprint\n\nPending\n\n## Otwarte\n\nNone\n")
+                elif path.name != "README.md":
                     path.write_text("# Budget fixture " + path.stem + "\n")
             baseline = audit(root)[2]
             desired = TOTAL_WARN_BYTES + 1024
             self.assertLess(baseline, TOTAL_WARN_BYTES)
-            files = sorted((root / "docs").rglob("*.md"))
+            # Preserve the single index and split the synthetic bytes among the
+            # compact docs. A table row does not create duplicate prose; the
+            # reference map is allowed its own larger cap.
+            files = sorted(p for p in (root / "docs").rglob("*.md")
+                           if p.name != "README.md")
             per_file, leftover = divmod(desired - baseline, len(files))
             for i, path in enumerate(files):
                 count = per_file + (i < leftover)
-                path.write_bytes(path.read_bytes() + b"\n" + b"x" * (count - 1))
+                path.write_bytes(path.read_bytes() + b"\n|" + b"x" * (count - 2))
             errors, warnings, total = audit(root)
             self.assertEqual(desired, total)
-            self.assertFalse(any("budget exceeded" in item for item in errors), errors)
+            self.assertEqual([], errors)
             self.assertLess(total, TOTAL_MAX_BYTES)
             self.assertTrue(any("documentation budget nearing limit" in w for w in warnings))
 
