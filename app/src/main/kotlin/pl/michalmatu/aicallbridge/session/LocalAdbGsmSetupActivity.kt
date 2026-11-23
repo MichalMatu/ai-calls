@@ -40,7 +40,7 @@ class LocalAdbGsmSetupActivity : UiChromeActivity(AppTab.SETTINGS) {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (packageName != GsmShellMediaProtocol.S8_PACKAGE) {
+        if (!GsmShellMediaProtocol.supportedPackage(packageName)) {
             finish()
             return
         }
