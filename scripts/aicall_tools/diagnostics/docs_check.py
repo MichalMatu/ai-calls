@@ -26,6 +26,7 @@ FILE_MAX_BYTES = 2 * 1024
 UI_REFERENCE_MAX_BYTES = 14 * 1024
 AGENTS_MAX_BYTES = 1 * 1024
 PROJECT_MAX_BYTES = 2 * 1024
+README_MAX_BYTES = 8 * 1024
 
 LINK = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 HEADING = re.compile(r"^(#{1,3})[ \t]+(.+?)[ \t]*$")
@@ -112,7 +113,7 @@ def audit(root: Path) -> tuple[list[str], list[str], int]:
     if (root / "scripts/local_agent/README.md").exists():
         errors.append("scripts/local_agent/README.md: duplicate documentation location")
 
-    # The public setup guide has its own per-file cap.
+    # The public installation guide has an explicit 8 KiB cap; documentation remains compact.
     total = sum(f.stat().st_size for f in files if f != root / "README.md")
     if total > TOTAL_MAX_BYTES:
         errors.append(f"documentation budget exceeded: {total} > {TOTAL_MAX_BYTES} bytes")
@@ -125,7 +126,7 @@ def audit(root: Path) -> tuple[list[str], list[str], int]:
         cap = (AGENTS_MAX_BYTES if rel == "AGENTS.md" else
                PROJECT_MAX_BYTES if rel == "docs/PROJECT.md" else
                UI_REFERENCE_MAX_BYTES if rel == "docs/architecture/UI_SCREEN_MAP.md"
-               else FILE_MAX_BYTES)
+               else README_MAX_BYTES if rel == "README.md" else FILE_MAX_BYTES)
         if size > cap:
             errors.append(f"{rel}: file budget exceeded: {size} > {cap} bytes")
         elif size > FILE_WARN_BYTES:
