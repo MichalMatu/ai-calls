@@ -1,12 +1,16 @@
 # AI Calls
 
+## ⬇️ [DOWNLOAD AI CALLS 0.2.3 APK — FIRST MVP](https://github.com/MichalMatu/ai-calls/releases/download/v0.2.3/ai-calls-v0.2.3.apk)
+
+**Samsung Galaxy S22+ · Android 16** · [SHA-256 checksums](https://github.com/MichalMatu/ai-calls/releases/download/v0.2.3/SHA256SUMS.txt) · [Release notes](https://github.com/MichalMatu/ai-calls/releases/tag/v0.2.3)
+
 **An on-device AI assistant for GSM calls.** AI Calls can answer on a selected SIM, take a message, and prepare outgoing enquiries for your approval. Gemma and the selected speech engines run on the phone.
 
-**MVP preview · Samsung Galaxy S22+ (SM-S906B) · Android 16**
+**First MVP release · Samsung Galaxy S22+ (SM-S906B) · Android 16**
 
-This guide covers **AI Calls 0.2.3**, which is being prepared for release. The latest published APK, **0.2.2**, lacks this Wireless ADB setup. [GitHub releases](https://github.com/MichalMatu/ai-calls/releases) · [Changes in 0.2.3](docs/PROJECT.md#changes-in-023)
+This guide covers **AI Calls 0.2.3**, the first regular MVP release. It replaces the defective v0.2.2 APK, which could not start the GSM host from the main app. [GitHub releases](https://github.com/MichalMatu/ai-calls/releases) · [Changes in 0.2.3](docs/PROJECT.md#changes-in-023)
 
-The preview targets the S22+ configuration above. See the project status for the exact builds tested and the scope of each result. [Validation status](docs/PROJECT.md)
+This MVP targets the S22+ configuration above. See the project status for the exact builds tested and the scope of each result. [Validation status](docs/PROJECT.md)
 
 ## What can it do?
 

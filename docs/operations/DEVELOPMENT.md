@@ -2,12 +2,18 @@
 
 Use the Gradle wrapper with JDK 21 and Android SDK Platform 37. Set `ANDROID_HOME` to your SDK path. Run `scripts/bin/test-profile.sh preflight` and `scripts/bin/test-profile.sh full`. Build the APK with `./gradlew :app:assembleRelease`. The debug package suffix is `.s8lab`.
 
-## Public preview checklist
+## Current MVP release
+
+[Download AI Calls 0.2.3 APK](https://github.com/MichalMatu/ai-calls/releases/download/v0.2.3/ai-calls-v0.2.3.apk) · [SHA-256 checksums](https://github.com/MichalMatu/ai-calls/releases/download/v0.2.3/SHA256SUMS.txt) · [Release notes](https://github.com/MichalMatu/ai-calls/releases/tag/v0.2.3). Published as a regular MVP release for Samsung S22+ / Android 16. The v0.2.2 release was withdrawn because its main package could not bootstrap Wireless ADB/GSM; retain the git tag only for source history. Do not link to the old APK.
+
+The 0.2.3 APK retains the existing Android Debug certificate for upgrade compatibility. Real GSM qualification should be recorded for the exact released APK before expanding support or making production-wide claims.
+
+## Subsequent release checklist
 
 1. Decide the project license and review redistribution terms and notices for dependencies packaged in the APK. Keep model downloads tied to their catalog revisions. [Licensing](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/licensing-a-repository)
 2. Select a release signing key and compare its certificate with the previous APK. Plan the update path or document a fresh install if the signing identities differ. Store the key and backups outside the repo. [Android signing](https://developer.android.com/studio/publish/app-signing)
 3. Build from a clean `main` commit and record its SHA, version, increasing `versionCode`, APK SHA-256 and signing certificate. On S22+ in IDLE, preserve a rollback APK and check clean installation, Phone role, Wireless ADB, host startup, SIM and model. Verify English and Polish UI, prompts and speech.
 4. With consent, verify an incoming call, two-way audio, STOP/takeover and END_CALL after TTS on that APK. Record the exact SHA and any unverified language or outgoing scope. Exclude private audio and identifiers from evidence.
-5. After approval, tag the verified commit and publish a GitHub pre-release with the signed APK, `SHA256SUMS.txt`, tested scope and upgrade notes. Keep published assets immutable. Verify the download and checksum links in the README.
+5. After approval, tag the verified commit and publish a normal GitHub release (or explicitly marked prerelease only when required) with the signed APK, `SHA256SUMS.txt`, tested scope and upgrade notes. Keep published assets immutable. Verify the download and checksum links in the README.
 
 Review history with `git log --first-parent --oneline v0.2.2..main`. Summarize user-visible changes in the release notes and link the comparison to the previous tag. [GitHub Releases](https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases)

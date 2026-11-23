@@ -1,4 +1,4 @@
-# AI Calls 0.2.3 preview
+# AI Calls 0.2.3 — first MVP release
 
 The supported setup is GSM on Samsung S22+ (SM-S906B) with Android 16. The main package provides Wireless ADB and GSM audio. The separate `.s8lab` package is for developer checks.
 
@@ -19,11 +19,15 @@ The supported setup is GSM on Samsung S22+ (SM-S906B) with Android 16. The main 
 - PRs #78–#86 passed host tests and nine safe S22+ UI tests. That run covered navigation and settings.
 - The [screen map](architecture/UI_SCREEN_MAP.md) describes the Activity inventory.
 
-## Preview release work
+## First MVP release and QA scope
 
-Repeat language selection and an authorized GSM call on the release APK. The public 0.2.2 APK and the local 0.2.3 candidate use the same Android Debug certificate. Choose a release signer and verify the upgrade or fresh-install path before distribution. See the [release checklist](operations/DEVELOPMENT.md).
+[Download AI Calls 0.2.3 APK](https://github.com/MichalMatu/ai-calls/releases/download/v0.2.3/ai-calls-v0.2.3.apk) · [SHA-256 checksums](https://github.com/MichalMatu/ai-calls/releases/download/v0.2.3/SHA256SUMS.txt) · [Release notes](https://github.com/MichalMatu/ai-calls/releases/tag/v0.2.3). This is the regular GitHub MVP release, not a prerelease. The supported target is Samsung S22+ / Android 16.
 
-The public 0.2.2 APK predates the main-package Wireless ADB setup.
+Host tests, release packaging and signing checks cover 0.2.3. Physical S22+ acceptance described above is tied to earlier tested commits, and Polish real-call evidence comes from v0.2.1. A full authorized GSM call on the exact published v0.2.3 APK has not yet been separately recorded. Do not claim blanket Android compatibility or production-wide acceptance. Record Call/SIM, incoming audio, STOP/takeover and END_CALL after TTS against the exact distributed APK when completing further phone QA.
+
+The MVP keeps the prior Android Debug signing certificate for upgrade compatibility. This is not a dedicated production release key; move to a managed signing identity through a documented upgrade strategy. See the [release checklist](operations/DEVELOPMENT.md).
+
+The defective v0.2.2 release was withdrawn; its historical git tag is retained for traceability.
 
 [Telephony development priorities](modules/INCOMING_OUTGOING.md#development-priorities)
 
