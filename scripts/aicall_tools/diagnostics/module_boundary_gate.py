@@ -20,6 +20,14 @@ BACKWARD_AUDIO_IMPORT = re.compile(
     r'^\s*import\s+pl\.michalmatu\.aicallbridge\.(?:presentation|ui)\.'
 )
 
+# Presentation may depend on domain/data contracts, never on Android widgets or UI.
+# Resource identifiers are still used by the legacy Agent summary formatter; this
+# rule targets platform/UI dependencies without changing existing translations.
+PRESENTATION_REVERSE_IMPORT = re.compile(
+    r'^\s*import\s+(?:static\s+)?(?:android\.|androidx\.|'
+    r'pl\.michalmatu\.aicallbridge\.ui\.)'
+)
+
 def audit(root:Path)->list[str]:
     issues=[]
     settings=root/"settings.gradle.kts"
@@ -59,6 +67,14 @@ def audit(root:Path)->list[str]:
                 if p.name == "LanguageModelActivity.kt" and line.strip() == legacy_entrypoint_import:
                     continue
                 issues.append(str(p.relative_to(root)) + ":" + str(no) + ":reverse_ui_dependency")
+    presentation_root = root / "app/src/main/kotlin/pl/michalmatu/aicallbridge/presentation"
+    if presentation_root.exists():
+        for p in sorted(presentation_root.rglob("*")):
+            if p.suffix not in (".kt", ".java"): continue
+            for no, line in enumerate(p.read_text(errors="replace").splitlines(), 1):
+                if PRESENTATION_REVERSE_IMPORT.match(line):
+                    issues.append(str(p.relative_to(root)) + ":" + str(no) +
+                                  ":presentation_reverse_ui_dependency")
     return issues
 
 def main()->int:

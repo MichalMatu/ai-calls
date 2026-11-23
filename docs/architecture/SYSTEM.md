@@ -34,3 +34,8 @@ zmieniły zachowania. Test granic pakietów blokuje zależności UI w pozostały
 `textagent`, dopuszczając wyłącznie import klasy ekranu w zgodnym wejściu.
 Nadal do wydzielenia: asynchroniczny cykl TTS i odczyty operacyjne do adapterów;
 nie należy traktować tej zmiany jako gotowej do wydania bez gradle/QA na urządzeniu.
+
+
+### Compose migration inventory and gate
+
+[Source-derived screen/settings map](UI_SCREEN_MAP.md) tracks all manifest entrypoints and nested screens. The module gate now rejects Android/AndroidX or UI imports in `presentation`; legacy Android `R` resource mapping remains documented debt. No UI redesign or runtime behavior changes in this inventory sprint.
