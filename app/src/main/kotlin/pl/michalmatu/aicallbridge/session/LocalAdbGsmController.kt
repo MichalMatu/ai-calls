@@ -104,7 +104,7 @@ internal class LocalAdbGsmController(private val context: Context) {
                 if (!LocalAdbGsmPolicy.callIdle(
                         checked("dumpsys telephony.registry"),
                         checked("dumpsys audio"))) return Outcome.CALL_BUSY
-                val installed = checked("pm path ${context.packageName}")
+                val installed = checked("pm path --user 0 ${context.packageName}")
                 if (!installed.lineSequence().any { it.startsWith("package:") }) return Outcome.WRONG_DEVICE
                 if (LocalAdbGsmPolicy.hostRegistered(checked(LocalAdbGsmPolicy.statusFor(context.packageName))))
                     return Outcome.ALREADY_READY
