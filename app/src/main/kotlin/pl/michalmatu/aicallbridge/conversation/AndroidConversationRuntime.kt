@@ -25,6 +25,7 @@ import pl.michalmatu.aicallbridge.developerrelay.RemoteBargeInMonitor
 import pl.michalmatu.aicallbridge.localspeech.LocalTtsSpeechOutput
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechTextPipeline
 import pl.michalmatu.aicallbridge.data.adapters.AndroidConversationSpeechPipelineFactory
+import pl.michalmatu.aicallbridge.domain.conversation.ConversationTerminalSummary
 import pl.michalmatu.aicallbridge.audioengines.ConversationRunConfiguration
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineRegistry
 import pl.michalmatu.aicallbridge.audioengines.GemmaAudioCapturePolicy
@@ -964,21 +965,10 @@ internal object AndroidConversationRuntime {
             mediaRuntime = null
             executor.shutdownNow()
             dialogue.finalDiagnostics().forEach { lines += it }
-            lines += "turns_completed=$turnsCompleted"
-            lines += "telephony_rx_pcm_bytes=$totalRxBytes"
-            lines += "telephony_rx_partial_pcm_bytes=$interruptedRxBytes"
-            lines += "telephony_tx_pcm_bytes=$totalTxBytes"
-            // PCM flow and conversation termination are independent outcomes.
-            // Accepted byte counts do not by themselves prove carrier playback quality.
-            lines += "media_rx_tx_observed=" + (turnsCompleted > 0 && totalRxBytes > 0 && totalTxBytes > 0)
-            lines += "conversation_terminal_category=" + when (result) {
-                ConversationTermination.Completed -> "completed"
-                is ConversationTermination.Stopped -> "stopped"
-                is ConversationTermination.Failed -> "failed"
-            }
-            lines += "chat_relay_live_call_success=${result == ConversationTermination.Completed}"
-            lines += "conversation_end_reason=${sanitize(reason)}"
-            if (result is ConversationTermination.Failed) lines += "failure_reason=${sanitize(reason)}"
+            ConversationTerminalSummary.entries(
+                result, turnsCompleted, totalRxBytes, interruptedRxBytes,
+                totalTxBytes, sanitize(reason),
+            ).forEach { lines += it }
             lines += "probe_complete=true"
             val report = lines.render()
             evidenceRecorder?.recordDiagnosticReport(report)
