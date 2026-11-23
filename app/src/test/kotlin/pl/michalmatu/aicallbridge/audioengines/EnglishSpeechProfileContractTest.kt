@@ -8,6 +8,14 @@ import pl.michalmatu.aicallbridge.conversation.ConversationReplyRecovery
 import pl.michalmatu.aicallbridge.conversation.ConversationResponseFormat
 
 class EnglishSpeechProfileContractTest {
+    @Test fun compatibilityCheckFollowsTheConversationLanguage() {
+        val english = modelTextCompatibilityRequest("en-US")
+        val polish = modelTextCompatibilityRequest("pl-PL")
+        assertTrue(english.contains("Reply briefly in English"))
+        assertTrue(polish.contains("Odpowiedz krótko"))
+        assertTrue(english.contains("tool=none") && polish.contains("tool=none"))
+    }
+
     @Test fun englishIsExplicitAndRequiresOnDeviceAndroidSpeechAndTts() {
         val english = AudioEngineProfile(languageTag = "en-US")
         assertNull(AudioEngineRegistry.incompatibility(english))

@@ -73,6 +73,11 @@ internal object ModelAudioCompatibilityReply {
     }
 }
 
+internal fun modelTextCompatibilityRequest(languageTag: String): String =
+    if (languageTag == "en-US")
+        "This is a local compatibility check. Reply briefly in English in the required format with tool=none."
+    else "To lokalna próba zgodności. Odpowiedz krótko w wymaganym formacie, tool=none."
+
 internal class ModelCompatibilityProbe(private val context: Context) : AutoCloseable {
     private val generation = AtomicLong()
     private var model: TextCallAgentBackend? = null
@@ -99,7 +104,9 @@ internal class ModelCompatibilityProbe(private val context: Context) : AutoClose
         }
         val backend = if (audio)
             Gemma4LiteRtTextBackendFactory.createStagedCompatibilityProbe(file)
-        else Gemma4LiteRtTextBackendFactory.createCompatibilityProbe(file, false)
+        else Gemma4LiteRtTextBackendFactory.createCompatibilityProbe(
+            file, audio = false, responseLanguageTag = profile.languageTag,
+        )
         model = backend
         val listener = object : TextCallAgentBackend.Listener {
             override fun onComplete(text: String) {
@@ -112,7 +119,7 @@ internal class ModelCompatibilityProbe(private val context: Context) : AutoClose
             override fun onError(reason: String) = finish("model_native_check_failed")
         }
         if (!audio) {
-            backend.generate("To lokalna próba zgodności. Odpowiedz krótko w wymaganym formacie, tool=none.", listener)
+            backend.generate(modelTextCompatibilityRequest(profile.languageTag), listener)
         } else {
             // Overlap TTS preparation with native Gemma startup. Both run off-call;
             // generateAudio is serialized behind prewarm on the same native worker.

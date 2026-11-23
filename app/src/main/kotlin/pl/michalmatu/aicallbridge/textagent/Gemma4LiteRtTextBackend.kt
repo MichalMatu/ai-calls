@@ -955,15 +955,25 @@ internal object Gemma4LiteRtTextBackendFactory {
         return StagedGemmaAudioBackend(model)
     }
 
-    fun createCompatibilityProbe(file: File, audio: Boolean): TextCallAgentBackend =
-        Gemma4LiteRtTextBackend(Gemma4RuntimeFactory { path, instruction ->
+    fun createCompatibilityProbe(
+        file: File,
+        audio: Boolean,
+        responseLanguageTag: String = "pl-PL",
+    ): TextCallAgentBackend {
+        val systemInstruction = if (responseLanguageTag == "en-US")
+            "Return only a JSON object with reply, tool, note and kind. Reply briefly in English (US). " +
+                "Use tool=none, an empty note, and kind=NOTE."
+        else ConversationReplyProtocol.INSTRUCTION
+        return Gemma4LiteRtTextBackend(Gemma4RuntimeFactory { path, instruction ->
             LiteRtGemma4Runtime(path, instruction,
                 responseFormat = ResponseFormat.json(ConversationReplyProtocol.schema(emptySet())),
                 audioResponseFormat = if (audio) ResponseFormat.json(
                     ConversationReplyProtocol.audioSchema(emptySet())) else null,
                 // Match production: reject/repair malformed structured native audio replies.
-                validateConversationReply = audio)
-        }, file.absolutePath, ConversationReplyProtocol.INSTRUCTION)
+                validateConversationReply = audio,
+                responseLanguageTag = responseLanguageTag)
+        }, file.absolutePath, systemInstruction)
+    }
 
     fun modelFile(context: Context, profile: pl.michalmatu.aicallbridge.audioengines.AudioEngineProfile): File {
         if (profile.dialogue != DialogueModelId.USER_LITERT) return modelFile(context, profile.dialogue)
