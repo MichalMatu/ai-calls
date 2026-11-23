@@ -25,4 +25,6 @@ Repeat language selection and an authorized GSM call on the release APK. The pub
 
 The public 0.2.2 APK predates the main-package Wireless ADB setup.
 
+[Telephony development priorities](modules/INCOMING_OUTGOING.md#development-priorities)
+
 **Outside the MVP:** Shizuku, GitHub Actions, schedulers and `WRITE_SECURE_SETTINGS`.
