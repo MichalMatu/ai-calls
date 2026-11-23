@@ -38,4 +38,4 @@ nie należy traktować tej zmiany jako gotowej do wydania bez gradle/QA na urzą
 
 ### Compose migration inventory and gate
 
-[Source-derived screen/settings map](UI_SCREEN_MAP.md) tracks all manifest entrypoints and nested screens. The module gate now rejects Android/AndroidX or UI imports in `presentation`; legacy Android `R` resource mapping remains documented debt. No UI redesign or runtime behavior changes in this inventory sprint.
+[Source-derived screen/settings map](UI_SCREEN_MAP.md) tracks all manifest entrypoints and nested screens. The module gate now rejects Android/AndroidX or UI imports in `presentation`; Agent summaries now use semantic text keys, with Android string-resource mapping in `ui/AgentAiHubActivity`. No UI redesign or runtime behavior changes in this inventory sprint.

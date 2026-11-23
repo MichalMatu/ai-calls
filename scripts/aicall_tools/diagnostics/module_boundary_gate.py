@@ -21,11 +21,11 @@ BACKWARD_AUDIO_IMPORT = re.compile(
 )
 
 # Presentation may depend on domain/data contracts, never on Android widgets or UI.
-# Resource identifiers are still used by the legacy Agent summary formatter; this
-# rule targets platform/UI dependencies without changing existing translations.
+# Resource identifiers belong to the UI: presentation uses semantic localization keys.
+# This gate blocks the UI package and direct app R imports from presentation.
 PRESENTATION_REVERSE_IMPORT = re.compile(
     r'^\s*import\s+(?:static\s+)?(?:android\.|androidx\.|'
-    r'pl\.michalmatu\.aicallbridge\.ui\.)'
+    r'pl\.michalmatu\.aicallbridge\.(?:ui\.|R\b))'
 )
 
 def audit(root:Path)->list[str]:

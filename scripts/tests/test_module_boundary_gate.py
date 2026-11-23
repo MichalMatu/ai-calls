@@ -96,6 +96,7 @@ class ModuleGateTest(unittest.TestCase):
                 "import android.content.Context",
                 "import androidx.lifecycle.ViewModel",
                 "import pl.michalmatu.aicallbridge.ui.UiDesign",
+                "import pl.michalmatu.aicallbridge.R",
             ):
                 source.write_text(bad + "\n")
                 self.assertTrue(

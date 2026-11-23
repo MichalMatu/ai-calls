@@ -12,6 +12,7 @@ import java.util.concurrent.Executors
 import pl.michalmatu.aicallbridge.R
 import pl.michalmatu.aicallbridge.data.adapters.AndroidAgentHubOverviewReader
 import pl.michalmatu.aicallbridge.presentation.agent.AgentHubSummaryFormatter
+import pl.michalmatu.aicallbridge.presentation.agent.AgentSummaryTextKey
 import pl.michalmatu.aicallbridge.conversation.ConversationPreparationActivity
 import pl.michalmatu.aicallbridge.conversation.ConversationSkillsActivity
 import pl.michalmatu.aicallbridge.conversation.ScenarioLibraryActivity
@@ -68,8 +69,22 @@ class AgentAiHubActivity : AppBaseActivity() {
             val snapshot = AndroidAgentHubOverviewReader(applicationContext).read()
             main.post {
                 if (token != generation || isFinishing || isDestroyed) return@post
-                val rendered = AgentHubSummaryFormatter { id, args -> getString(id, *args) }
-                    .render(snapshot)
+                val rendered = AgentHubSummaryFormatter { key, args ->
+                    getString(when (key) {
+                        AgentSummaryTextKey.LOAD_ERROR -> R.string.ux07_agent_load_error
+                        AgentSummaryTextKey.TONE_NATURAL -> R.string.skills_tone_natural
+                        AgentSummaryTextKey.TONE_FORMAL -> R.string.skills_tone_formal
+                        AgentSummaryTextKey.TONE_LEGACY -> R.string.skills_hub_legacy_style
+                        AgentSummaryTextKey.SKILLS_SUMMARY -> R.string.skills_hub_summary
+                        AgentSummaryTextKey.CUSTOM_ON -> R.string.skills_hub_custom_on
+                        AgentSummaryTextKey.CUSTOM_OFF -> R.string.skills_hub_custom_off
+                        AgentSummaryTextKey.SCENARIO_COUNT -> R.string.ux07_agent_scenario_count
+                        AgentSummaryTextKey.PROFILE_COUNT -> R.string.ux07_agent_profile_count
+                        AgentSummaryTextKey.VAULT_EMPTY -> R.string.ux09_agent_vault_empty
+                        AgentSummaryTextKey.VAULT_COUNT -> R.string.ux07_agent_vault_count
+                        AgentSummaryTextKey.TOOLS_COUNT -> R.string.ux07_agent_tools_count
+                    }, *args)
+                }.render(snapshot)
                 rendered.forEach { (key, value) ->
                     summaries[key]?.text = value
                     destinations[key]?.contentDescription = titles[key] + ". " + value
