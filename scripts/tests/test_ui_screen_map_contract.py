@@ -1,6 +1,5 @@
 """Manifest-to-screen documentation drift guard (source-only; no device needed)."""
 from pathlib import Path
-import re
 import unittest
 from xml.etree import ElementTree
 
