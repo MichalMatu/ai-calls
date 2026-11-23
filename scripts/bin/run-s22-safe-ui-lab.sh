@@ -64,9 +64,11 @@ candidate_sha="$(shasum -a 256 "$app_apk" | awk '{print $1}')"
 adb -s "$ANDROID_SERIAL" install -r "$test_apk" >/dev/null
 phone_idle || { echo CALL_CHANGED_REFUSED=true >&2; exit 6; }
 
+# Select the two S22-safe Lab tests explicitly. The third test is emulator-only
+# and is correctly rejected as a skipped test by instrumentation_result.py.
 set +e
 output="$(adb -s "$ANDROID_SERIAL" shell am instrument -r -w \
-  -e class 'pl.michalmatu.aicallbridge.AndroidAppBottomNavigationFlowTest,pl.michalmatu.aicallbridge.AndroidUiPolishContractTest,pl.michalmatu.aicallbridge.AndroidLabDialogStorageAcceptanceTest' \
+  -e class 'pl.michalmatu.aicallbridge.AndroidAppBottomNavigationFlowTest,pl.michalmatu.aicallbridge.AndroidUiPolishContractTest,pl.michalmatu.aicallbridge.AndroidLabDialogStorageAcceptanceTest#encryptedCaseAndReportRoundTripAcrossFreshStoreInstances,pl.michalmatu.aicallbridge.AndroidLabDialogStorageAcceptanceTest#labManualAndAdaptiveControlsPresentWithoutStartingModel' \
   "$pkg.test/androidx.test.runner.AndroidJUnitRunner")"
 runner_code="$?"
 set -e

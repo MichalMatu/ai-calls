@@ -22,6 +22,11 @@ class SafeS22LabTests(unittest.TestCase):
             self.assertIn(name,self.sh)
         for forbidden in ('ACTION_CALL','KEYCODE_CALL','am start','pm clear','uninstall','reboot'):
             self.assertNotIn(forbidden,self.sh)
+    def test_physical_suite_excludes_emulator_only_case_editor(self):
+        self.assertIn("AndroidLabDialogStorageAcceptanceTest#encryptedCaseAndReportRoundTripAcrossFreshStoreInstances", self.sh)
+        self.assertIn("AndroidLabDialogStorageAcceptanceTest#labManualAndAdaptiveControlsPresentWithoutStartingModel", self.sh)
+        self.assertNotIn("settingsOpensLabAndCaseEditorPersistsInstructions", self.sh)
+
     def test_sha_and_nonempty_results(self):
         for token in ('shasum -a 256','instrumentation_result.py',
                       '--expected-count 9','S22_SAFE_UI_LAB_ACCEPTANCE_PASS=true'):
