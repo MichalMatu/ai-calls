@@ -20,6 +20,10 @@ import android.os.RemoteException;
 public final class GsmShellBinderRegistryProvider extends ContentProvider {
     public static final String AUTHORITY = GsmShellMediaProtocol.S8_PACKAGE + ".gsmbinder";
 
+    public static String authorityFor(String packageName) {
+        return GsmShellMediaProtocol.authorityFor(packageName);
+    }
+
     private static final Object LOCK = new Object();
     private static IBinder registeredBinder;
     private static IGsmShellMediaService registeredService;
@@ -37,7 +41,7 @@ public final class GsmShellBinderRegistryProvider extends ContentProvider {
     @Override public Bundle call(String method, String arg, Bundle extras) {
         if (Binder.getCallingUid() != GsmShellMediaProtocol.SHELL_UID
             || getContext() == null
-            || !GsmShellMediaProtocol.S8_PACKAGE.equals(getContext().getPackageName())) {
+            || !GsmShellMediaProtocol.supportedPackage(getContext().getPackageName())) {
             throw new SecurityException("s8_gsm_shell_registration_denied");
         }
         if ("status".equals(method)) {
