@@ -55,7 +55,7 @@ class Sprint5UxContract(unittest.TestCase):
             self.assertNotIn(legacy, home)
         settings = self.source("ui/SettingsHubActivity.kt")
         self.assertEqual(1, settings.count("LanguageModelActivity::class.java"))
-        models = self.source("textagent/LanguageModelActivity.kt")
+        models = self.source("ui/modelvoice/ModelLibraryScreenActivity.kt")
         for token in ("configuration.modelView", "configuration.inputView", "configuration.voiceView", "model-manage-files"):
             self.assertIn(token, models)
         campaign = self.source("campaign/AppointmentMvpActivity.kt")

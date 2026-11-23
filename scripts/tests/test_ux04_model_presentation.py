@@ -6,7 +6,7 @@ BASE = Path(__file__).resolve().parents[2] / "app/src/main/kotlin/pl/michalmatu/
 
 class ModelPresentationBoundaryTest(unittest.TestCase):
     def test_activity_renders_typed_status_but_starts_original_service(self):
-        activity = (BASE / "textagent/LanguageModelActivity.kt").read_text()
+        activity = (BASE / "ui/modelvoice/ModelLibraryScreenActivity.kt").read_text()
         self.assertIn("LanguageModelStatusPresenter.present(", activity)
         self.assertIn("row.card.isActivated = isActive", activity)
         self.assertIn("if (!filesMode) { configuration.refresh(); return }", activity)

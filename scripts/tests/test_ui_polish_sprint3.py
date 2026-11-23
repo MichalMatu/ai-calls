@@ -29,7 +29,7 @@ class UxSprint3Contract(unittest.TestCase):
         self.assertIn("R.string.phone_ui_save", phone)
 
     def test_active_model_and_readonly_factory_skills(self):
-        models = self.read("textagent/LanguageModelActivity.kt")
+        models = self.read("ui/modelvoice/ModelLibraryScreenActivity.kt")
         skills = self.read("conversation/ConversationSkillsActivity.kt")
         self.assertIn("row.card.isActivated = isActive", models)
         self.assertIn("row.download.visibility", models)

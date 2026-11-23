@@ -17,7 +17,7 @@ SCREENS = (
     "conversation/ConversationSkillsActivity.kt",
     "conversation/ConversationMessageView.kt",
     "developerrelay/SupervisedCallPilotActivity.kt",
-    "textagent/LanguageModelActivity.kt",
+    "ui/modelvoice/ModelLibraryScreenActivity.kt",
 )
 PREFIXES = ("home_one_tap_", "home_mic_", "eng_ui_", "camp_ux05_", "pilot_ui_",
             "skills_ux05_", "models_ux05_", "chat_turn_", "chat_tx_", "dialer_ui_")
