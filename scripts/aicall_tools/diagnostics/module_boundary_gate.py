@@ -25,7 +25,18 @@ BACKWARD_AUDIO_IMPORT = re.compile(
 # This gate blocks the UI package and direct app R imports from presentation.
 PRESENTATION_REVERSE_IMPORT = re.compile(
     r'^\s*import\s+(?:static\s+)?(?:android\.|androidx\.|'
-    r'pl\.michalmatu\.aicallbridge\.(?:ui\.|R\b))'
+    r'pl\.michalmatu\.aicallbridge\.(?:ui\.|data\.|R\b))'
+)
+
+
+# Domain is Android-free; data adapters may use Android but cannot import screens.
+DOMAIN_REVERSE_IMPORT = re.compile(
+    r'^\s*import\s+(?:static\s+)?(?:android\.|androidx\.|'
+    r'pl\.michalmatu\.aicallbridge\.(?:ui\.|presentation\.|data\.|R\b))'
+)
+DATA_REVERSE_IMPORT = re.compile(
+    r'^\s*import\s+(?:static\s+)?pl\.michalmatu\.aicallbridge\.'
+    r'(?:ui\.|presentation\.|R\b)'
 )
 
 def audit(root:Path)->list[str]:
@@ -75,6 +86,21 @@ def audit(root:Path)->list[str]:
                 if PRESENTATION_REVERSE_IMPORT.match(line):
                     issues.append(str(p.relative_to(root)) + ":" + str(no) +
                                   ":presentation_reverse_ui_dependency")
+    source_root = root / "app/src/main/kotlin/pl/michalmatu/aicallbridge"
+    for layer, pattern, issue_name in (
+        ("domain", DOMAIN_REVERSE_IMPORT, "domain_reverse_dependency"),
+        ("data", DATA_REVERSE_IMPORT, "data_reverse_ui_dependency"),
+    ):
+        layer_root = source_root / layer
+        if not layer_root.exists():
+            continue
+        for source in sorted(layer_root.rglob("*")):
+            if source.suffix not in (".kt", ".java"):
+                continue
+            for number, line in enumerate(source.read_text(errors="replace").splitlines(), 1):
+                if pattern.match(line):
+                    issues.append(str(source.relative_to(root)) + ":" +
+                                  str(number) + ":" + issue_name)
     return issues
 
 def main()->int:
