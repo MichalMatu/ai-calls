@@ -744,7 +744,7 @@
     <string name="cap_ui_unknown">Unknown</string>
     <string name="perm_answer_phone_title">Answering calls</string>
     <string name="perm_default_apps_action">Android default apps</string>
-    <string name="perm_app_settings_action">AI Calls app permissions in Android</string>
+    <string name="perm_app_settings_action">AI Calls app info in Android</string>
     <string name="perm_incoming_ai_action">GSM assistant — mode and SIM</string>
     <string name="perm_incoming_mode_ai">Answering mode: AI</string>
     <string name="perm_incoming_mode_manual">Answering mode: manual</string>
@@ -755,9 +755,8 @@
     <string name="perm_action_settings">Open Android settings</string>
     <string name="perm_call_phone_title">Placing calls</string>
     <string name="perm_notifications_title">Notifications (optional)</string>
-    <string name="perm_gsm_shell_title">GSM — own ADB shell host</string>
-    <string name="perm_gsm_shell_ready">GSM shell host found.</string>
-    <string name="perm_gsm_shell_offline">GSM shell host unavailable. Start it after authorizing ADB.</string>
+    <string name="perm_gsm_shell_ready">GSM audio ready</string>
+    <string name="perm_gsm_shell_offline">Pair Wireless ADB and start the GSM audio host.</string>
 
     <string name="home_outgoing_action">New outgoing call</string>
     <string name="home_incoming_mode_manual">Manual answering</string>

@@ -57,7 +57,7 @@ dependencies {
     // Existing cached Activity artifact supplies lifecycle-aware predictive Back handling.
     implementation("androidx.activity:activity:1.10.1")
     implementation("com.squareup.okhttp3:okhttp:5.4.0")
-    // Explicit, user-approved local ADB pairing for the isolated S8 lab only.
+    // Explicit, user-approved local ADB pairing for GSM setup.
     implementation("com.flyfishxu:kadb:2.1.5")
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test:core:1.6.1")

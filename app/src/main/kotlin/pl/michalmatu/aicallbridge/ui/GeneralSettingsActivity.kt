@@ -16,7 +16,9 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import pl.michalmatu.aicallbridge.R
+import pl.michalmatu.aicallbridge.session.CallMediaBackendMode
 import pl.michalmatu.aicallbridge.session.GsmMediaTransportReadiness
+import pl.michalmatu.aicallbridge.session.LocalAdbGsmSetupActivity
 import pl.michalmatu.aicallbridge.conversationcore.AnsweringMode
 import pl.michalmatu.aicallbridge.incoming.IncomingAssistantPolicyStore
 import pl.michalmatu.aicallbridge.incoming.IncomingAssistantSettingsActivity
@@ -33,7 +35,7 @@ class GeneralSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
     private lateinit var role: DialerRoleCard
     private lateinit var incomingModeStatus: TextView
     private val grants = linkedMapOf<String, GrantRow>()
-    private lateinit var shellStatus: TextView
+    private var gsmAudioOverview: Pair<View, TextView>? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -53,7 +55,18 @@ class GeneralSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
         }.apply { tag = "permissions-default-apps" }, UiDesign.spaceAfter(this, 8))
         body.addView(UiDesign.navigationRow(this, getString(R.string.perm_app_settings_action)) {
             openAppSettings()
-        }.apply { tag = "permissions-app-details" }, UiDesign.spaceAfter(this, 16))
+        }.apply { tag = "permissions-app-details" }, UiDesign.spaceAfter(this, 8))
+        if (CallMediaBackendMode.forPackage(packageName) == CallMediaBackendMode.GSM_SHELL_ADB) {
+            val status = UiDesign.caption(this, "").apply {
+                tag = "permissions-gsm-shell-status"
+                accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
+            }
+            val row = UiDesign.navigationRow(this, getString(R.string.local_adb_open), status) {
+                startActivity(Intent(this, LocalAdbGsmSetupActivity::class.java))
+            }.apply { tag = "permissions-gsm-shell" }
+            gsmAudioOverview = row to status
+            body.addView(row, UiDesign.spaceAfter(this, 16))
+        }
 
         val card = UiDesign.card(this).apply { tag = "permissions-grants-card" }
         fun group(tag: String, label: String): Pair<LinearLayout, LinearLayout> {
@@ -101,13 +114,6 @@ class GeneralSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
             runtime("notifications", R.string.perm_notifications_title,
                 Manifest.permission.POST_NOTIFICATIONS, R.string.perm_action_allow, REQUEST_NOTIFICATIONS)
         }
-
-        val (labels, _) = group("gsm-shell", getString(R.string.perm_gsm_shell_title))
-        shellStatus = UiDesign.caption(this, "").apply {
-            tag = "permissions-gsm-shell-status"
-            accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
-        }
-        labels.addView(shellStatus)
 
         body.addView(card)
         setContentView(ScrollView(this).apply { addView(body) })
@@ -176,8 +182,11 @@ class GeneralSettingsActivity : UiChromeActivity(AppTab.SETTINGS) {
             row.action.setText(if (asked && !shouldShowRequestPermissionRationale(row.permission))
                 R.string.perm_action_settings else R.string.perm_action_allow)
         }
-        shellStatus.setText(if (GsmMediaTransportReadiness.isAvailable(this))
-            R.string.perm_gsm_shell_ready else R.string.perm_gsm_shell_offline)
+        gsmAudioOverview?.let { (row, status) ->
+            status.setText(if (GsmMediaTransportReadiness.isAvailable(this))
+                R.string.perm_gsm_shell_ready else R.string.perm_gsm_shell_offline)
+            row.contentDescription = "${getString(R.string.local_adb_open)}. ${status.text}"
+        }
     }
 
     override fun onRequestPermissionsResult(

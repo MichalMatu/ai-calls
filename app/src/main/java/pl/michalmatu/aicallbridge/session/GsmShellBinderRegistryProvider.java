@@ -10,11 +10,11 @@ import android.os.IBinder;
 import android.os.RemoteException;
 
 /**
- * Debug-manifest-only, DUMP-protected registration point for an authorized
+ * DUMP-protected registration point for an authorized
  * ADB-launched shell Binder. Unlike an exported general IPC API, no operation
  * can be called by other application UIDs, and registration does not start PCM.
  *
- * This provider runs in the default S8 app process; the runtime reads the same
+ * This provider runs in the app process; the runtime reads the same
  * in-process registry. A dead helper loses authority without fallback.
  */
 public final class GsmShellBinderRegistryProvider extends ContentProvider {

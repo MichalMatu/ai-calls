@@ -1,6 +1,7 @@
 package pl.michalmatu.aicallbridge.ui
 
 import android.app.role.RoleManager
+import android.os.Build
 import android.view.View
 import android.widget.LinearLayout
 import androidx.activity.ComponentActivity
@@ -17,6 +18,7 @@ internal class DialerRoleCard(
         tag = "dialer-role-status"
         accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
     }
+    private val detail = UiDesign.caption(activity, "")
     // A result-bearing launch identifies the requesting package to Android's role controller.
     private val roleRequest = activity.registerForActivityResult(
         ActivityResultContracts.StartActivityForResult(),
@@ -44,8 +46,7 @@ internal class DialerRoleCard(
         },
             UiDesign.spaceAfter(activity, 6))
         view.addView(status, UiDesign.spaceAfter(activity, 8))
-        view.addView(UiDesign.caption(activity, activity.getString(R.string.role_ui_detail)),
-            UiDesign.spaceAfter(activity, 10))
+        view.addView(detail, UiDesign.spaceAfter(activity, 10))
         view.addView(request)
         refresh()
     }
@@ -61,6 +62,8 @@ internal class DialerRoleCard(
             available -> R.string.role_ui_missing
             else -> R.string.role_ui_unavailable
         })
+        detail.setText(if (Build.VERSION.SDK_INT >= 36 && available && !held)
+            R.string.role_ui_detail_restricted_settings else R.string.role_ui_detail)
         request.visibility = if (available && !held) View.VISIBLE else View.GONE
         view.visibility = if (showOnlyWhenMissing && held) View.GONE else View.VISIBLE
     }

@@ -781,7 +781,7 @@
     <string name="cap_ui_unknown">Brak danych</string>
     <string name="perm_answer_phone_title">Odbieranie połączeń</string>
     <string name="perm_default_apps_action">Aplikacje domyślne Androida</string>
-    <string name="perm_app_settings_action">Uprawnienia AI Calls w Androidzie</string>
+    <string name="perm_app_settings_action">Informacje o AI Calls w Androidzie</string>
     <string name="perm_incoming_ai_action">Sekretarka GSM — tryb i karta SIM</string>
     <string name="perm_incoming_mode_ai">Tryb odbierania: AI</string>
     <string name="perm_incoming_mode_manual">Tryb odbierania: ręczny</string>
@@ -792,9 +792,8 @@
     <string name="perm_action_settings">Otwórz ustawienia Androida</string>
     <string name="perm_call_phone_title">Wykonywanie połączeń</string>
     <string name="perm_notifications_title">Powiadomienia (opcjonalne)</string>
-    <string name="perm_gsm_shell_title">GSM — własny proces ADB</string>
-    <string name="perm_gsm_shell_ready">Host GSM shell wykryty.</string>
-    <string name="perm_gsm_shell_offline">Host GSM shell niedostępny. Uruchom go po autoryzacji ADB.</string>
+    <string name="perm_gsm_shell_ready">Audio GSM gotowe</string>
+    <string name="perm_gsm_shell_offline">Sparuj ADB bezprzewodowo i uruchom host audio GSM.</string>
 
     <string name="home_outgoing_action">Nowe połączenie wychodzące</string>
     <string name="home_incoming_mode_manual">Tryb ręczny</string>

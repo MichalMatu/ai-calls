@@ -10,7 +10,7 @@ import okio.Path.Companion.toPath
 import java.io.File
 
 /**
- * Owner-triggered local ADB bootstrap for the lab only.
+ * Owner-triggered local ADB bootstrap for AI Calls.
  *
  * Runs only on a background worker after a button tap. Pairing is a separate
  * explicit action. Never enables debugging, requests root, starts a call, or
