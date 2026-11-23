@@ -6,7 +6,7 @@ import unittest
 
 from scripts.aicall_tools.diagnostics.docs_check import (
     TOTAL_MAX_BYTES, TOTAL_WARN_BYTES, AGENTS_MAX_BYTES, PROJECT_MAX_BYTES,
-    UI_REFERENCE_MAX_BYTES, audit, check,
+    UI_REFERENCE_MAX_BYTES, README_MAX_BYTES, audit, check,
 )
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -57,7 +57,7 @@ class DocumentationContractTest(unittest.TestCase):
             root = Path(d)
             self.fixture(root)
             total_before = audit(root)[2]
-            (root / "README.md").write_text("# Public guide\n\n" + "Guide text. " * 200)
+            (root / "README.md").write_text("# Public guide\n\n" + "Guide text. " * (README_MAX_BYTES // 4))
             errors, _, total = audit(root)
             self.assertEqual(total_before, total)
             self.assertTrue(any("README.md: file budget exceeded" in e for e in errors))
