@@ -24,17 +24,10 @@ import pl.michalmatu.aicallbridge.localspeech.LocalSpeechFormat
 import pl.michalmatu.aicallbridge.developerrelay.RemoteBargeInMonitor
 import pl.michalmatu.aicallbridge.localspeech.LocalTtsSpeechOutput
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechTextPipeline
+import pl.michalmatu.aicallbridge.data.adapters.AndroidConversationSpeechPipelineFactory
 import pl.michalmatu.aicallbridge.audioengines.ConversationRunConfiguration
 import pl.michalmatu.aicallbridge.audioengines.AudioEngineRegistry
-import pl.michalmatu.aicallbridge.audioengines.SpeechInputId
-import pl.michalmatu.aicallbridge.audioengines.SpeechOutputId
-import pl.michalmatu.aicallbridge.audioengines.PiperServiceContract
-import pl.michalmatu.aicallbridge.audioengines.PiperAndroidTtsOutputProvider
-import pl.michalmatu.aicallbridge.audioengines.AndroidTtsOutputProvider
-import pl.michalmatu.aicallbridge.audioengines.ParakeetSpeechInputProvider
-import pl.michalmatu.aicallbridge.audioengines.GemmaAudioDirectInputProvider
 import pl.michalmatu.aicallbridge.audioengines.GemmaAudioCapturePolicy
-import pl.michalmatu.aicallbridge.audioengines.AndroidSttInputProvider
 import pl.michalmatu.aicallbridge.localspeech.LocalSpeechRecoverableFailure
 import pl.michalmatu.aicallbridge.localspeech.PcmEndOfUtteranceDetector
 import pl.michalmatu.aicallbridge.session.CallMediaEndpointLease
@@ -197,28 +190,8 @@ internal object AndroidConversationRuntime {
                 lines += "turn_${event.turn}_tool_${event.tool.wireName}_${event.stage.name.lowercase()}=${event.result?.name ?: "pending"}"
             },
         ))
-        private val pipeline = LocalSpeechTextPipeline(
-            context,
-            dialogue.backend,
-            dialogue.approvalPolicy,
-            languageTag = runConfiguration.audioProfile.languageTag,
-            voiceId = runConfiguration.audioProfile.voiceId,
-            input = when (runConfiguration.audioProfile.input) {
-                SpeechInputId.ANDROID_STT -> AndroidSttInputProvider(context, runConfiguration.audioProfile.languageTag)
-                SpeechInputId.PARAKEET_PL -> ParakeetSpeechInputProvider(context)
-                SpeechInputId.GEMMA_AUDIO_DIRECT -> GemmaAudioDirectInputProvider()
-            },
-            output = when (runConfiguration.audioProfile.output) {
-                SpeechOutputId.ANDROID_TTS_PL -> AndroidTtsOutputProvider(
-                    context, runConfiguration.audioProfile.languageTag, runConfiguration.audioProfile.voiceId,
-                    runConfiguration.audioProfile.effectiveTtsEnginePackage,
-                )
-                SpeechOutputId.PIPER_PL -> PiperAndroidTtsOutputProvider(
-                    context, runConfiguration.audioProfile.languageTag, runConfiguration.audioProfile.voiceId,
-                )
-                SpeechOutputId.KOKORO, SpeechOutputId.POCKET_TTS ->
-                    error("unavailable_polish_output_engine")
-            },
+        private val pipeline = AndroidConversationSpeechPipelineFactory.create(
+            context, dialogue.backend, dialogue.approvalPolicy, runConfiguration.audioProfile,
         )
 
         private var mediaRuntime: CallMediaSessionRuntime? = null
