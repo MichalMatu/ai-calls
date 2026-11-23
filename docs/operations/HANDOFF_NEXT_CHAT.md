@@ -1,6 +1,8 @@
-# AI Calls — handoff po scaleniu Front/Back PR #77
+# AI Calls — handoff separacji warstw (23.11.2026)
 
-23.11.2026: `main@8c4517dc`, PR #77 scalony. Kod `edb32655` przeszedł 528 testów Python, JVM/app/lint, budowę APK i 9/9 bezpiecznych testów S22+ (`.s8lab`). Po instalacji przywrócono host Binder. Telefon IDLE, dane zachowane, bez rozmów GSM. Raporty: `agent-control/.agent/results/aicalls-frontback-s22-*-20261123-v1.json`.
+Aktualny potwierdzony `main@3d138ab8`: PR #79 (fabryka STT/TTS runtime), #80 (czysta polityka startu Lab), #81 (bramki kierunku importów) i #83 (native probe modeli w Data) scalone. Wcześniejszy #77 zachował 34 ekrany i zachowanie UI. Bez redesignu, bez prawdziwych rozmów GSM.
+
+**Dowody:** `agent-control/.agent/results/aicalls-*-20261123-*.json`. Każdy z #79/#80/#81/#83: zielony Mac build/test i S22+ 9/9. Po #79–81 połączone QA `main@3f6351a4`: 534 Python, build APK i 9/9 UI PASS; Binder przywrócony, telefon IDLE, dane zachowane. Nie ekstrapolować wyników na kolejne SHA.
 
 ## Konfiguracja i recovery S22+ (tylko jeśli wymaga ponowienia)
 
@@ -14,6 +16,6 @@ Flow instalacji/QA został wykonany. Poniższa procedura dotyczy wyłącznie pó
 
 Bez automatycznych rozmów i schedulerów. [Stan](../PROJECT.md).
 
-## Kolejny obszar kodu
+## Otwarte bramki
 
-Oddzielić cykl życia TTS/probe i duże runtime/Lab od widoków z testami charakteryzacyjnymi. Nie zmieniać funkcjonalności ani UI; bieżące QA na poprzednim SHA nie weryfikuje przyszłych zmian.
+PR #78 (natywny cykl TTS), #82 (lista zadań), #84 (tworzenie zadania), #85 (walidacja scenariusza), #86 (diagnostyka zakończenia runtime) pozostają do potwierdzenia dokładnego SHA, S22+ i scalania. Mapa 34 Activity jest audytem źródeł, nie dowodem pełnego wizualnego QA. Przed pracą sprawdzić obecny HEAD, wyniki Local Agenta i PR-y; nie powtarzać zakończonego QA. Bez Codex, Work, GitHub Actions i połączeń GSM.
