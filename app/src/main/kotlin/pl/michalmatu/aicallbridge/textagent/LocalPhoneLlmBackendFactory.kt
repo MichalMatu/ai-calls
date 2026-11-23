@@ -13,7 +13,7 @@ internal object LocalPhoneLlmBackendFactory {
             "Nie składaj zamówień, nie akceptuj umów, nie ujawniaj danych wrażliwych i nie podejmuj zobowiązań bez jawnej autoryzacji aplikacji."
 
     internal fun supportsPackage(packageName: String): Boolean =
-        GsmShellMediaProtocol.S8_PACKAGE == packageName
+        GsmShellMediaProtocol.supportedPackage(packageName)
 
     fun create(
         context: Context,
