@@ -68,4 +68,23 @@ class ModuleGateTest(unittest.TestCase):
             source.parent.mkdir(parents=True, exist_ok=True)
             source.write_text("import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfile\n")
             self.assertEqual(audit(root), [])
+    def test_text_backend_cannot_import_ui_or_presentation(self):
+        with tempfile.TemporaryDirectory() as t:
+            root = Path(t); mock(root)
+            source = root / "app/src/main/kotlin/pl/michalmatu/aicallbridge/textagent/Backend.kt"
+            source.parent.mkdir(parents=True, exist_ok=True)
+            source.write_text("import pl.michalmatu.aicallbridge.ui.UiDesign\n")
+            self.assertTrue(any(i.endswith(":reverse_ui_dependency") for i in audit(root)))
+            source.write_text("import pl.michalmatu.aicallbridge.presentation.modelvoice.ModelVoiceReadinessPresenter\n")
+            self.assertTrue(any(i.endswith(":reverse_ui_dependency") for i in audit(root)))
+
+    def test_legacy_manifest_entrypoint_has_one_explicit_ui_import(self):
+        with tempfile.TemporaryDirectory() as t:
+            root = Path(t); mock(root)
+            source = root / "app/src/main/kotlin/pl/michalmatu/aicallbridge/textagent/LanguageModelActivity.kt"
+            source.parent.mkdir(parents=True, exist_ok=True)
+            source.write_text("import pl.michalmatu.aicallbridge.ui.modelvoice.ModelLibraryScreenActivity\n")
+            self.assertEqual(audit(root), [])
+            source.write_text("import pl.michalmatu.aicallbridge.ui.modelvoice.*\n")
+            self.assertTrue(any(i.endswith(":reverse_ui_dependency") for i in audit(root)))
 if __name__=="__main__":unittest.main()

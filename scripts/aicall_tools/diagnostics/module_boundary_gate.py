@@ -49,6 +49,16 @@ def audit(root:Path)->list[str]:
             for no, line in enumerate(p.read_text(errors="replace").splitlines(), 1):
                 if BACKWARD_AUDIO_IMPORT.match(line):
                     issues.append(str(p.relative_to(root)) + ":" + str(no) + ":reverse_ui_dependency")
+    text_root = root / "app/src/main/kotlin/pl/michalmatu/aicallbridge/textagent"
+    legacy_entrypoint_import = "import pl.michalmatu.aicallbridge.ui.modelvoice.ModelLibraryScreenActivity"
+    if text_root.exists():
+        for p in sorted(text_root.rglob("*")):
+            if p.suffix not in (".kt", ".java"): continue
+            for no, line in enumerate(p.read_text(errors="replace").splitlines(), 1):
+                if not BACKWARD_AUDIO_IMPORT.match(line): continue
+                if p.name == "LanguageModelActivity.kt" and line.strip() == legacy_entrypoint_import:
+                    continue
+                issues.append(str(p.relative_to(root)) + ":" + str(no) + ":reverse_ui_dependency")
     return issues
 
 def main()->int:

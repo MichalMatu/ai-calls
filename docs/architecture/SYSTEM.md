@@ -23,3 +23,14 @@ TTS oraz prób modelu. Sześć modułów Gradle ma poprawne dozwolone zależnoś
 lecz `app` nadal skupia Android UI i adaptery. Dalsze wydzielenia wymagają
 charakteryzacyjnych testów, kompilacji na Mac i ponownego fizycznego QA na S22+.
 Nie deklarować PASS ani merge do `main` bez tych dowodów.
+
+### Wydzielenie biblioteki modeli — gałąź PR #77
+
+Implementacja widoku biblioteki modeli jest w `ui/modelvoice/ModelLibraryScreenActivity.kt`.
+Klasa `textagent.LanguageModelActivity` pozostała w miejscu jako cienki punkt wejścia
+zgodny z manifestem i istniejącymi Intentami, w tym trybem menedżera plików.
+Transfer modeli, zapisywanie profilu, walidacja plików i mechanizmy ochronne nie
+zmieniły zachowania. Test granic pakietów blokuje zależności UI w pozostałym
+`textagent`, dopuszczając wyłącznie import klasy ekranu w zgodnym wejściu.
+Nadal do wydzielenia: asynchroniczny cykl TTS i odczyty operacyjne do adapterów;
+nie należy traktować tej zmiany jako gotowej do wydania bez gradle/QA na urządzeniu.
