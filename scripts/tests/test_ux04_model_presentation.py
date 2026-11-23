@@ -21,7 +21,7 @@ class ModelPresentationBoundaryTest(unittest.TestCase):
         self.assertIn("if (!save(next))", controller)
 
     def test_presenter_is_readonly_and_separates_installed_from_selected(self):
-        presenter = (BASE / "textagent/LanguageModelStatusPresenter.kt").read_text()
+        presenter = (BASE / "presentation/modelvoice/LanguageModelStatusPresenter.kt").read_text()
         for s in ("installed && selected == entry.id", "showProgress = transfer.busy",
                   "Collections.unmodifiableList", "transfer.message.takeIf"):
             self.assertIn(s, presenter)

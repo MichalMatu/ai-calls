@@ -1,5 +1,9 @@
 package pl.michalmatu.aicallbridge.textagent
 
+import pl.michalmatu.aicallbridge.presentation.modelvoice.LanguageModelMeaning
+import pl.michalmatu.aicallbridge.presentation.modelvoice.LanguageModelRowState
+import pl.michalmatu.aicallbridge.presentation.modelvoice.LanguageModelStatusPresenter
+
 import org.junit.Assert.*
 import org.junit.Test
 import pl.michalmatu.aicallbridge.audioengines.DialogueModelId

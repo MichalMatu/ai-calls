@@ -1,4 +1,7 @@
-package pl.michalmatu.aicallbridge.textagent
+package pl.michalmatu.aicallbridge.presentation.modelvoice
+
+import pl.michalmatu.aicallbridge.textagent.LanguageModelEntry
+import pl.michalmatu.aicallbridge.textagent.TransferStatus
 
 import java.util.Collections
 import pl.michalmatu.aicallbridge.audioengines.DialogueModelId
