@@ -11,6 +11,24 @@ internal object LocalAdbGsmPolicy {
         "--nice-name=aicalls_gsm_binder pl.michalmatu.aicallbridge.session.GsmShellBinderMediaHost " +
         "</dev/null >/dev/null 2>&1 &'"
 
+    /** Only these two compile-time package identities may own privileged GSM. */
+    fun statusFor(packageName: String): String = when (packageName) {
+        GsmShellMediaProtocol.S8_PACKAGE -> STATUS
+        GsmShellMediaProtocol.APP_PACKAGE ->
+            "content call --uri content://pl.michalmatu.aicallbridge.gsmbinder --method status"
+        else -> throw SecurityException("gsm_shell_untrusted_app_target")
+    }
+
+    fun startFor(packageName: String): String = when (packageName) {
+        GsmShellMediaProtocol.S8_PACKAGE -> START
+        GsmShellMediaProtocol.APP_PACKAGE -> START
+            .replace("APP=pl.michalmatu.aicallbridge.s8lab",
+                "APP=pl.michalmatu.aicallbridge")
+            .replace("GsmShellBinderMediaHost ",
+                "GsmShellBinderMediaHost pl.michalmatu.aicallbridge ")
+        else -> throw SecurityException("gsm_shell_untrusted_app_target")
+    }
+
     fun port(input: String): Int? =
         input.takeIf { it.length in 1..5 && it.all { digit -> digit in '0'..'9' } }
             ?.toIntOrNull()?.takeIf { it in 1..65535 }
