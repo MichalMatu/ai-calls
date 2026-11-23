@@ -1,19 +1,16 @@
-# AI Calls
+# AI Calls — MVP 0.2.2
 
-An on-device assistant for authorized GSM calls on Samsung S22+ (Android 16), with PL/EN profiles, local transcripts, encrypted notes and WAV recordings.
+On-device GSM assistant for Samsung S22+ / Android 16, with PL/EN profiles, local conversation history, encrypted notes and optional WAV recordings.
 
-[Download AI Calls 0.2.1](https://github.com/MichalMatu/ai-calls/releases/download/v0.2.1/ai-calls-v0.2.1.apk) · [SHA256](https://github.com/MichalMatu/ai-calls/releases/download/v0.2.1/SHA256SUMS.txt). Test preview, not production. PL incoming GSM, notes and WAV verified; EN synthetic speech passed, full EN GSM unverified.
+[Download AI Calls 0.2.2 (APK)](https://github.com/MichalMatu/ai-calls/releases/download/v0.2.2/ai-calls-v0.2.2.apk) · [SHA256](https://github.com/MichalMatu/ai-calls/releases/download/v0.2.2/SHA256SUMS.txt)
+
+**MVP preview, not a production-qualified dialer.** Previously verified: Polish incoming GSM, notes and WAV. English synthetic speech passed; full English GSM and current outgoing GSM are not yet physically qualified. Use only for authorized calls.
 
 ## Install and set up
 
-1. Open the downloaded APK on the phone and install it. In Android settings, set AI Calls as the default Phone app. Grant microphone and SIM access in **Settings → Permissions and default apps**.
-2. While idle, open **Settings → GSM audio → Manage pairing**. Enable Wireless debugging, pair by code and reply to the AI Calls notification from the pull-down shade (or enter the code in the app). Tap **Start GSM audio host**.
-3. Open **Model and voice**. Choose **Gemma 4 E2B** or **E4B**, download it and tap **Check compatibility**. Set **AI conversation language** and preview an offline voice. **App language** sets the menu language.
-4. Choose the SIM and mode under **Answering calls**, or start a task from **New outgoing call**. Edit **Conversation instructions** or **AI Agent → Receptionist behavior**. Use the **Offline laboratory** for synthetic tests.
+1. Install the APK on S22+. Configure permissions and, if intended, the default Phone app under **Settings → Permissions and default apps**.
+2. In **Settings → GSM audio → Manage pairing**, enable Wireless debugging, pair by code and start the GSM audio host while the phone is idle.
+3. In **Model and voice**, download Gemma 4 E2B/E4B, check compatibility, choose conversation language and preview offline voice. App language controls the interface.
+4. Set SIM and mode for incoming calls or authorize an outgoing task. Test synthetic flows in the **Offline laboratory**.
 
-| Settings | Model and voice |
-| --- | --- |
-| <img src="docs/images/settings.png" width="300" alt="Settings showing GSM audio, conversation instructions and app language"> | <img src="docs/images/model-and-voice.png" width="300" alt="Model and voice showing E2B, English (US), Android speech input and offline voice"> |
-| Open GSM audio, permissions and app language. | Choose the model, conversation language and offline voice. |
-
-[Developer documentation](docs/README.md).
+[Documentation: MVP status, security and development](docs/README.md).
