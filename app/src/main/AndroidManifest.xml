@@ -74,6 +74,14 @@
         </service>
         <activity android:name=".incoming.IncomingAssistantSettingsActivity" android:exported="false" />
         <activity android:name=".session.LocalAdbGsmSetupActivity" android:exported="false" />
+        <!-- Exact shell UID/DUMP-only Binder registration shared by public and lab apps.
+             Runtime checks the caller UID and selected installed package identity. -->
+        <provider
+            android:name=".session.GsmShellBinderRegistryProvider"
+            android:authorities="${applicationId}.gsmbinder"
+            android:exported="true"
+            android:permission="android.permission.DUMP" />
+
         <!-- Only system notification direct-reply PendingIntent can submit this code. -->
         <receiver android:name=".session.LocalAdbPairingReplyReceiver" android:exported="false" />
         <activity android:name=".tools.ConversationToolsActivity" android:exported="false" />
