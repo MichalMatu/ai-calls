@@ -15,7 +15,7 @@ class ModelVoiceVoiceOptionsViewContract(unittest.TestCase):
             "if (save(draft.copy(voiceId = id))) voiceDialog?.dismiss()",
             "onPreview = ::preview",
             "private fun preview(voiceId:",
-            "AndroidTtsVoiceInventoryReader.read(engine, requested, language)",
+            "ttsSession.load(",
         ):
             self.assertIn(token, screen)
 
