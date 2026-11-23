@@ -4,7 +4,7 @@
 
 **MVP preview · Samsung Galaxy S22+ (SM-S906B) · Android 16**
 
-Use **AI Calls 0.2.3** for this guide. The latest published APK, **0.2.2**, lacks the Wireless ADB setup shown here. Release assets include the APK and its SHA-256 checksum. [GitHub releases](https://github.com/MichalMatu/ai-calls/releases)
+This guide covers **AI Calls 0.2.3**, which is being prepared for release. The latest published APK, **0.2.2**, lacks this Wireless ADB setup. [GitHub releases](https://github.com/MichalMatu/ai-calls/releases) · [Changes in 0.2.3](docs/PROJECT.md#changes-in-023)
 
 The preview targets the S22+ configuration above. See the project status for the exact builds tested and the scope of each result. [Validation status](docs/PROJECT.md)
 
@@ -17,7 +17,7 @@ The preview targets the S22+ configuration above. See the project status for the
 
 ## Install on Samsung S22+ (Android 16)
 
-1. Verify the APK against the release checksum. Open it in **My Files → Downloads** and follow the Android installer prompts.
+1. Download the APK and `SHA256SUMS.txt` from the same release. Verify them with `shasum -a 256 -c SHA256SUMS.txt` on macOS or `sha256sum -c SHA256SUMS.txt` on Linux. Open the verified APK in **My Files → Downloads** and follow the Android installer prompts.
 2. Open **AI Calls → Settings → Permissions and default apps → 1. Default Phone app**. Tap **Set as phone app** and select **AI Calls** in Android. If Android denies the request, open **AI Calls app info in Android → ⋮ → Allow restricted settings**, confirm, and retry. [Android Help](https://support.google.com/android/answer/12623953)
 3. Under **2. App permissions**, check what Android granted with the Phone app role. If all rows say **Granted**, continue to **3. GSM audio**. Use **Grant access** for any missing permission. **SIM cards and phone state** lets AI Calls list your SIM cards. **Notifications for ADB pairing** lets you reply with the code from the notification shade.
 4. Connect the phone to Wi-Fi. If **Developer options** are hidden, go to **Android Settings → About phone → Software information** and tap **Build number** seven times. Back in AI Calls, open **3. GSM audio**.
@@ -51,7 +51,7 @@ Pairing runs on the phone over Wi-Fi. Enter Android's six-digit code in the **AI
 
 1. In **Model and voice**, download **Gemma 4 E2B**, run **Check compatibility**, and tap **Preview voice**. Gemma needs a model download on first setup.
 2. In **Permissions and default apps → 4. SIM and call answering**, select the SIM, choose **AI — answer and take messages**, and tap **Save settings**. Enable **Record incoming call audio segments (WAV)** if you want local audio segments.
-3. Place a first incoming test call with a consenting caller. Check the greeting, a short reply and **STOP** takeover. In a separate call, check that a clear goodbye plays to completion before disconnecting.
+3. Ask a consenting caller to dial the selected SIM. Check the greeting, a short reply and **STOP** takeover. In a separate call, check that the goodbye plays to completion before disconnecting.
 
 <p>
   <img src="docs/images/setup/model-compatibility.jpg" width="280" alt="Gemma 4 E2B with Model compatibility verified and English (US) selected">
