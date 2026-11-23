@@ -9,7 +9,9 @@ APP = ROOT / "app/src/main/kotlin/pl/michalmatu/aicallbridge"
 class TtsInventoryAdapterBoundary(unittest.TestCase):
     def test_view_uses_inventory_adapter_but_does_not_enumerate_engine_state(self):
         source = (APP / "ui/modelvoice/ModelVoiceSettings.kt").read_text()
-        self.assertIn("AndroidTtsVoiceInventoryReader.read(engine, requested, language)", source)
+        self.assertIn("ttsSession.load(", source)
+        self.assertNotIn("TextToSpeech.OnInitListener", source)
+        self.assertIn("AndroidTtsVoiceSession(activity)", source)
         self.assertNotIn("val installed = engine.engines", source)
         self.assertNotIn("val voices = ModelVoiceTtsInventoryPolicy.availableOffline(", source)
         self.assertIn("voiceState.accepts(generation)", source)

@@ -10,10 +10,13 @@ class AudioActivePresentationBoundaryTest(unittest.TestCase):
         self.assertIn("AudioEngineSettingsActivity : LanguageModelActivity()", alias)
         editor = (ROOT.parent / "ui/modelvoice/ModelVoiceSettings.kt").read_text()
         for owner in ("ModelVoiceProfileController(store::load, store::save)",
-                      "profiles.select(profile)", "AudioEngineReadinessProbe.check", "TextToSpeech(activity",
+                      "profiles.select(profile)", "AudioEngineReadinessProbe.check", "AndroidTtsVoiceSession(activity)",
                       "getSystemService(TelecomManager::class.java)", "effectiveTtsEnginePackage"):
             self.assertIn(owner, editor)
         self.assertNotIn("ParakeetModelDownloader(", editor)
+        session = (ROOT.parent / "data/adapters/AndroidTtsVoiceSession.kt").read_text()
+        self.assertIn("TextToSpeech(context, initialized)", session)
+        self.assertIn("engine?.shutdown()", session)
         controller = (ROOT.parent / "presentation/modelvoice/ModelVoiceProfileController.kt").read_text()
         self.assertIn("if (!save(next))", controller)
         self.assertIn("AudioEngineRegistry::incompatibility", controller)
