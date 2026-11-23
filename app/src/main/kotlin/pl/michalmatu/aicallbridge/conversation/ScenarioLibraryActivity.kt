@@ -18,6 +18,7 @@ import pl.michalmatu.aicallbridge.conversationcore.PersonalScenario
 import pl.michalmatu.aicallbridge.conversationcore.ScenarioCatalog
 import pl.michalmatu.aicallbridge.conversationcore.ScenarioDefinition
 import pl.michalmatu.aicallbridge.conversationcore.ScenarioDraft
+import pl.michalmatu.aicallbridge.presentation.scenarios.ScenarioCallPreparationPolicy
 import pl.michalmatu.aicallbridge.ui.AppTab
 import pl.michalmatu.aicallbridge.ui.UiActionTone
 import pl.michalmatu.aicallbridge.ui.UiChromeActivity
@@ -368,34 +369,28 @@ class ScenarioLibraryActivity : UiChromeActivity(AppTab.AGENT) {
         val prepare = if (!creating) UiDesign.action(this,
                 getString(R.string.scenario_ui_prepare_call),
                 if (personal == null) UiActionTone.PRIMARY else UiActionTone.SECONDARY) {
-                val next = draft()
-                val missing = next.missingRequiredFields(definition)
-                if (missing.isNotEmpty()) {
-                    feedback.text = getString(R.string.scenario_ui_missing,
-                        missing.joinToString { id ->
-                            definition.fields.first { it.id == id }.title(language)
-                        })
-                } else {
-                    val title = (personalTitle?.text?.toString() ?:
-                        definition.title(language)).trim()
-                    val goal = (personalGoal?.text?.toString() ?:
-                        definition.goal(language)).trim()
-                    val fields = definition.fields.mapNotNull { field ->
-                        next.values[field.id]?.trim()?.takeIf(String::isNotBlank)
-                            ?.let { field.title(language) + ": " + it }
+                val result = ScenarioCallPreparationPolicy.prepare(
+                    definition = definition,
+                    draft = draft(),
+                    language = language,
+                    title = personalTitle?.text?.toString() ?: definition.title(language),
+                    goal = personalGoal?.text?.toString() ?: definition.goal(language),
+                )
+                when (result) {
+                    is ScenarioCallPreparationPolicy.Result.Missing -> {
+                        feedback.text = getString(R.string.scenario_ui_missing,
+                            result.fieldIds.joinToString { id ->
+                                definition.fields.first { it.id == id }.title(language)
+                            })
                     }
-                    val summary = (listOf(goal) + fields).joinToString("\n")
-                    if (title.length !in 2..140 || goal.length !in 5..300 ||
-                        summary.length !in 5..3500
-                    ) {
+                    ScenarioCallPreparationPolicy.Result.Invalid ->
                         feedback.text = getString(R.string.scenario_call_invalid)
-                    } else {
+                    is ScenarioCallPreparationPolicy.Result.Ready ->
                         startActivity(Intent(this, ScenarioOutgoingCallActivity::class.java)
                             .putExtra(ScenarioOutgoingCallActivity.EXTRA_SCENARIO_ID, definition.id)
-                            .putExtra(ScenarioOutgoingCallActivity.EXTRA_SCENARIO_TITLE, title)
-                            .putExtra(ScenarioOutgoingCallActivity.EXTRA_SCENARIO_GOAL, goal)
-                            .putExtra(ScenarioOutgoingCallActivity.EXTRA_SCENARIO_BRIEF, summary))
-                    }
+                            .putExtra(ScenarioOutgoingCallActivity.EXTRA_SCENARIO_TITLE, result.title)
+                            .putExtra(ScenarioOutgoingCallActivity.EXTRA_SCENARIO_GOAL, result.goal)
+                            .putExtra(ScenarioOutgoingCallActivity.EXTRA_SCENARIO_BRIEF, result.brief))
                 }
             }.apply { tag = "scenario-prepare-outgoing" } else null
         // A factory template leads with Prepare, while personal edits lead with Save.
