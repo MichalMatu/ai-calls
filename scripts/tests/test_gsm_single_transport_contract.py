@@ -27,10 +27,16 @@ class SingleGsmTransportContractTest(unittest.TestCase):
         self.assertIn("GSM_SHELL_ADB", mode)
         self.assertIn("UNAVAILABLE", mode)
         self.assertNotIn("SHIZUKU_LEGACY", mode)
-        self.assertIn("GsmShellMediaProtocol.S8_PACKAGE.equals(packageName)", mode)
+        self.assertIn("GsmShellMediaProtocol.supportedPackage(packageName)", mode)
+        self.assertIn("GsmShellMediaProtocol.supportedPackage(context.getPackageName())", runtime)
         self.assertIn("return new GsmShellBinderCallMediaSessionBackend()", runtime)
         self.assertNotIn("ShizukuCallMediaSessionBackend", runtime)
         self.assertIn('S8_PACKAGE = "pl.michalmatu.aicallbridge.s8lab"', protocol)
+        self.assertIn('APP_PACKAGE = "pl.michalmatu.aicallbridge"', protocol)
+        main_manifest = (PROD / "AndroidManifest.xml").read_text()
+        self.assertIn('GsmShellBinderRegistryProvider', main_manifest)
+        self.assertIn('android:permission="android.permission.DUMP"', main_manifest)
+        self.assertIn('android:authorities="${applicationId}.gsmbinder"', main_manifest)
 
 
 if __name__ == "__main__":
