@@ -31,7 +31,7 @@ internal object LocalAdbPairingNotification {
     private const val EXPIRY_MS = 180_000L
 
     fun canNotify(context: Context): Boolean {
-        if (context.packageName != GsmShellMediaProtocol.S8_PACKAGE) return false
+        if (!GsmShellMediaProtocol.supportedPackage(context.packageName)) return false
         val permission = Build.VERSION.SDK_INT < 33 ||
             context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) ==
                 PackageManager.PERMISSION_GRANTED
