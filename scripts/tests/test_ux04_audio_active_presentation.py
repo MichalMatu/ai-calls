@@ -8,7 +8,7 @@ class AudioActivePresentationBoundaryTest(unittest.TestCase):
     def test_one_editor_separates_choice_from_readiness_and_retains_offline_voice_io(self):
         alias = (ROOT / "AudioEngineSettingsActivity.kt").read_text()
         self.assertIn("AudioEngineSettingsActivity : LanguageModelActivity()", alias)
-        editor = (ROOT / "ModelVoiceSettings.kt").read_text()
+        editor = (ROOT.parent / "ui/modelvoice/ModelVoiceSettings.kt").read_text()
         for owner in ("ModelVoiceProfileController(store::load, store::save)",
                       "profiles.select(profile)", "AudioEngineReadinessProbe.check", "TextToSpeech(activity",
                       "getSystemService(TelecomManager::class.java)", "effectiveTtsEnginePackage"):

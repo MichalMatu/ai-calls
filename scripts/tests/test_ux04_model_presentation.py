@@ -15,7 +15,7 @@ class ModelPresentationBoundaryTest(unittest.TestCase):
         self.assertIn("LanguageModelTransferService.status.busy", activity)
         self.assertIn("startForegroundService(Intent(this, LanguageModelTransferService::class.java)", activity)
         self.assertIn("R.string.mv_manage_files", activity)
-        editor = (BASE / "audioengines/ModelVoiceSettings.kt").read_text()
+        editor = (BASE / "ui/modelvoice/ModelVoiceSettings.kt").read_text()
         self.assertIn("ModelVoiceProfileController(store::load, store::save)", editor)
         controller = (BASE / "presentation/modelvoice/ModelVoiceProfileController.kt").read_text()
         self.assertIn("if (!save(next))", controller)

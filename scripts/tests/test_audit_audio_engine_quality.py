@@ -18,9 +18,10 @@ COPY = [
         "AudioEngineProfile", "AudioEngineProfileStore", "AudioEngineReadiness", "DialogueEngineProviders",
         "AudioEngineProviders", "ParakeetSpeechInputProvider",
         "ParakeetModelDownloader", "ParakeetModelTransferService",
-        "GemmaAudioDirectInputProvider", "AudioEngineSettingsActivity", "ModelVoiceSettings",
+        "GemmaAudioDirectInputProvider", "AudioEngineSettingsActivity",
     )
-] + [MAIN + "localspeech/LocalTtsSpeechOutput.kt",
+] + [MAIN + "ui/modelvoice/ModelVoiceSettings.kt",
+     MAIN + "localspeech/LocalTtsSpeechOutput.kt",
      MAIN + "conversation/ConversationInputRoutingBackend.kt",
      MAIN + "campaign/AppointmentMvpConversationScenario.kt",
      MAIN + "campaign/ScenarioOutgoingConversationScenario.kt",
