@@ -55,11 +55,22 @@ class MinimalUiContract(unittest.TestCase):
         self.assertNotIn('tag = "ui-language-group"',hub)
         self.assertIn("UiSelect.setOptions(this, languageLabels)",hub)
         self.assertNotIn("RadioGroup(this)",hub)
-        # The model/voice picker is a native radio selection dialog; Lab uses
-        # the native styled spinner. Check each current control, not an obsolete one.
-        model=(K/"audioengines/ModelVoiceSettings.kt").read_text()
-        self.assertIn("RadioGroup(activity)",model)
-        self.assertIn("RadioButton(activity)",model)
+        # Keep native choices after separating the coordinator from Android views.
+        # Assert owner wiring and the actual controls, not their former file location.
+        owner=(K/"audioengines/ModelVoiceSettings.kt").read_text()
+        input_dialog=(K/"ui/modelvoice/ModelVoiceSpeechDialogs.kt").read_text()
+        model_dialog=(K/"ui/modelvoice/ModelVoiceModelDialog.kt").read_text()
+        voice_view=(K/"ui/modelvoice/ModelVoiceVoiceOptionsView.kt").read_text()
+        self.assertIn("ModelVoiceInputDialog(",owner)
+        self.assertIn("ModelVoiceModelDialog(",owner)
+        self.assertIn("ModelVoiceVoiceOptionsView(",owner)
+        self.assertIn("RadioGroup(activity)",input_dialog)
+        self.assertIn("RadioButton(activity)",input_dialog)
+        self.assertIn("if (onSelected(choice.input)) dialog.dismiss()",input_dialog)
+        self.assertIn("setSingleChoiceItems(",model_dialog)
+        self.assertIn("if (saved) dialog.dismiss()",model_dialog)
+        self.assertIn("RadioButton(activity)",voice_view)
+        self.assertIn("setOnClickListener { onSelectVoice(id) }",voice_view)
         self.assertIn("UiSelect.setOptions(",
                       (K/"conversation/ConversationSkillLabActivity.kt").read_text())
 
