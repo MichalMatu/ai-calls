@@ -11,9 +11,11 @@
 - Outgoing: wcześniejszy test 5 tur i END_CALL PASS, bez kwalifikacji bieżącego APK.
 - QA: `454f766` — PL rozmowa/notatki; `c7eff94` — analiza GSM; `4ea08c8` — pełne QA (JVM/lint/501 Python), build oraz instalacja 0.2.1 na S22+ PASS.
 
+- Refaktor Front/Back PR #77: squash merge `8c4517dc` (23.11), QA na `edb32655`: 528 Python, JVM/app/lint i oba APK PASS. S22+ debug `.s8lab`: SHA instalacji zgodne, 9/9 bezpiecznych testów UI PASS, host Binder odtworzony, IDLE; bez GSM i czyszczenia danych. [Mapa ekranów](architecture/UI_SCREEN_MAP.md).
+
 ## Następny sprint
 
-Nowy czat: instalacja, zgody, kod ADB z szuflady powiadomień, host GSM, zachowanie po reboocie, screenshoty. [Handoff](operations/HANDOFF_NEXT_CHAT.md).
+Po PR #77: wydzielenie cyklu TTS/probe oraz runtime/Lab za testami charakteryzacyjnymi; bez redesignu. Nie powtarzać QA z 23.11 bez zmian. [Handoff](operations/HANDOFF_NEXT_CHAT.md).
 
 ## Otwarte
 
