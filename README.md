@@ -54,13 +54,15 @@ Pairing runs on the phone over Wi-Fi. Enter Android's six-digit code in the **AI
 3. Place a first incoming test call with a consenting caller. Check the greeting, a short reply and **STOP** takeover. In a separate call, check that a clear goodbye plays to completion before disconnecting.
 
 <p>
-  <img src="docs/images/setup/model-compatibility.jpg" width="280" alt="Downloaded Gemma 4 E2B with Check compatibility, language and voice controls">
+  <img src="docs/images/setup/model-compatibility.jpg" width="280" alt="Gemma 4 E2B with Model compatibility verified and English (US) selected">
   <img src="docs/images/setup/sim-and-answering.jpg" width="280" alt="Answering calls settings with the SIM selector and optional WAV recording">
 </p>
 
 ### English and Polish
 
 English is the default. Choose **English** or **Polish** under **Settings → App and conversation language**. The in-app selection changes the interface, built-in instructions, speech recognition, and voice for new conversations. Both languages use the same Gemma model. Your own instructions and task text keep the words you entered. Review the approval if an outgoing task was saved in the other language.
+
+<img src="docs/images/setup/language-selection.jpg" width="280" alt="App and conversation language menu showing English and Polish">
 
 ### Restore service or switch to manual
 
