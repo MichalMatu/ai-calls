@@ -12,6 +12,8 @@
 
 Pełne fizyczne EN GSM i outgoing na bieżącym APK; docelowy model podpisywania/IPC i kwalifikacja produkcyjna. MVP nie jest wydaniem produkcyjnym.
 
+**WSTRZYMANE:** Shizuku, GitHub Actions, schedulery, `WRITE_SECURE_SETTINGS`.
+
 ## Następny sprint
 
 Nieplanowany. Projekt odłożony po publikacji MVP; nowe prace wymagają osobnej decyzji.
