@@ -97,7 +97,7 @@ class ModuleGateTest(unittest.TestCase):
                 "import androidx.lifecycle.ViewModel",
                 "import pl.michalmatu.aicallbridge.ui.UiDesign",
             ):
-                source.write_text(bad + "\\n")
+                source.write_text(bad + "\n")
                 self.assertTrue(
                     any(i.endswith(":presentation_reverse_ui_dependency") for i in audit(root)),
                     bad
@@ -108,7 +108,7 @@ class ModuleGateTest(unittest.TestCase):
             root = Path(t); mock(root)
             source = root / "app/src/main/kotlin/pl/michalmatu/aicallbridge/presentation/agent/Clean.kt"
             source.parent.mkdir(parents=True, exist_ok=True)
-            source.write_text("import pl.michalmatu.aicallbridge.domain.models.AgentHubOverview\\n")
+            source.write_text("import pl.michalmatu.aicallbridge.domain.models.AgentHubOverview\n")
             self.assertEqual(audit(root), [])
 
 if __name__=="__main__":unittest.main()
