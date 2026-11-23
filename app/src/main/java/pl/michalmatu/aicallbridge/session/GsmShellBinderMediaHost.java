@@ -25,8 +25,14 @@ public final class GsmShellBinderMediaHost {
     private GsmShellBinderMediaHost() {}
 
     public static void main(String[] args) throws Exception {
-        if (args.length != 0 || Process.myUid() != GsmShellMediaProtocol.SHELL_UID)
+        if (Process.myUid() != GsmShellMediaProtocol.SHELL_UID)
             throw new SecurityException("gsm_shell_requires_adb_owner");
+        // The lab retains its original no-argument entrypoint; release is explicit.
+        String packageName;
+        if (args.length == 0) packageName = GsmShellMediaProtocol.S8_PACKAGE;
+        else if (args.length == 1 && GsmShellMediaProtocol.APP_PACKAGE.equals(args[0]))
+            packageName = GsmShellMediaProtocol.APP_PACKAGE;
+        else throw new SecurityException("gsm_shell_untrusted_app_target");
         if (Looper.myLooper() == null) Looper.prepare();
 
         Class<?> activityThread = Class.forName("android.app.ActivityThread");
@@ -36,16 +42,16 @@ public final class GsmShellBinderMediaHost {
 
         ShellCallContexts.Pair contexts = ShellCallContexts.create();
         Context system = contexts.system();
-        ApplicationInfo initial = installedApp(system);
+        ApplicationInfo initial = installedApp(system, packageName);
         if (!GsmShellMediaProtocol.mayServeApp(initial.uid, initial.uid))
             throw new SecurityException("gsm_shell_invalid_app_uid");
 
         boolean recovering = false;
         while (!Thread.currentThread().isInterrupted()) {
-            requireSameApp(system, initial);
+            requireSameApp(system, initial, packageName);
             GsmShellBinderMediaService media = new GsmShellBinderMediaService(initial.uid);
-            try (GsmShellExternalProviderClient provider = GsmShellExternalProviderClient.acquire()) {
-                requireSameApp(system, initial);
+            try (GsmShellExternalProviderClient provider = GsmShellExternalProviderClient.acquire(packageName)) {
+                requireSameApp(system, initial, packageName);
                 if (recovering && !phoneIdle(contexts.shell())) return;
                 if (!provider.register(media.asBinder()))
                     throw new IllegalStateException("gsm_shell_binder_registration_failed");
@@ -53,7 +59,7 @@ public final class GsmShellBinderMediaHost {
                 // The controller watchdog independently revokes unattended PCM.
                 while (!Thread.currentThread().isInterrupted()) {
                     Thread.sleep(1_000L);
-                    requireSameApp(system, initial);
+                    requireSameApp(system, initial, packageName);
                     if (!registrationAlive(provider)) break;
                 }
             } finally {
@@ -64,7 +70,7 @@ public final class GsmShellBinderMediaHost {
             boolean ready = false;
             for (int check = 0; check < RECOVERY_CHECKS; check++) {
                 if (Thread.currentThread().isInterrupted()) return;
-                requireSameApp(system, initial);
+                requireSameApp(system, initial, packageName);
                 if (media.isQuiescent() && phoneIdle(contexts.shell())) {
                     ready = true;
                     break;
@@ -75,12 +81,13 @@ public final class GsmShellBinderMediaHost {
         }
     }
 
-    private static ApplicationInfo installedApp(Context system) throws Exception {
-        return system.getPackageManager().getApplicationInfo(GsmShellMediaProtocol.S8_PACKAGE, 0);
+    private static ApplicationInfo installedApp(Context system, String packageName) throws Exception {
+        return system.getPackageManager().getApplicationInfo(packageName, 0);
     }
 
-    private static void requireSameApp(Context system, ApplicationInfo initial) throws Exception {
-        ApplicationInfo current = installedApp(system);
+    private static void requireSameApp(Context system, ApplicationInfo initial,
+                                       String packageName) throws Exception {
+        ApplicationInfo current = installedApp(system, packageName);
         if (current.uid != initial.uid || !initial.sourceDir.equals(current.sourceDir))
             throw new SecurityException("gsm_shell_app_identity_changed");
     }
