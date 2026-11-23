@@ -50,4 +50,66 @@ class ModuleGateTest(unittest.TestCase):
             r=Path(t);mock(r);f=r/"settings.gradle.kts"
             f.write_text(f.read_text().replace('include(":app")',""))
             self.assertIn("module_set_changed",audit(r))
+    def test_audio_engine_cannot_import_ui_presentation(self):
+        with tempfile.TemporaryDirectory() as t:
+            root = Path(t); mock(root)
+            source = root / "app/src/main/kotlin/pl/michalmatu/aicallbridge/audioengines/Bad.kt"
+            source.parent.mkdir(parents=True, exist_ok=True)
+            for target in (
+                "pl.michalmatu.aicallbridge.presentation.modelvoice.ModelVoiceProfileController",
+                "pl.michalmatu.aicallbridge.ui.modelvoice.ModelVoiceModelDialog",
+            ):
+                source.write_text("package pl.michalmatu.aicallbridge.audioengines\nimport " + target + "\n")
+                self.assertTrue(any(issue.endswith(":reverse_ui_dependency") for issue in audit(root)))
+    def test_ui_screen_can_depend_on_audio_domain(self):
+        with tempfile.TemporaryDirectory() as t:
+            root = Path(t); mock(root)
+            source = root / "app/src/main/kotlin/pl/michalmatu/aicallbridge/ui/modelvoice/Owner.kt"
+            source.parent.mkdir(parents=True, exist_ok=True)
+            source.write_text("import pl.michalmatu.aicallbridge.audioengines.AudioEngineProfile\n")
+            self.assertEqual(audit(root), [])
+    def test_text_backend_cannot_import_ui_or_presentation(self):
+        with tempfile.TemporaryDirectory() as t:
+            root = Path(t); mock(root)
+            source = root / "app/src/main/kotlin/pl/michalmatu/aicallbridge/textagent/Backend.kt"
+            source.parent.mkdir(parents=True, exist_ok=True)
+            source.write_text("import pl.michalmatu.aicallbridge.ui.UiDesign\n")
+            self.assertTrue(any(i.endswith(":reverse_ui_dependency") for i in audit(root)))
+            source.write_text("import pl.michalmatu.aicallbridge.presentation.modelvoice.ModelVoiceReadinessPresenter\n")
+            self.assertTrue(any(i.endswith(":reverse_ui_dependency") for i in audit(root)))
+
+    def test_legacy_manifest_entrypoint_has_one_explicit_ui_import(self):
+        with tempfile.TemporaryDirectory() as t:
+            root = Path(t); mock(root)
+            source = root / "app/src/main/kotlin/pl/michalmatu/aicallbridge/textagent/LanguageModelActivity.kt"
+            source.parent.mkdir(parents=True, exist_ok=True)
+            source.write_text("import pl.michalmatu.aicallbridge.ui.modelvoice.ModelLibraryScreenActivity\n")
+            self.assertEqual(audit(root), [])
+            source.write_text("import pl.michalmatu.aicallbridge.ui.modelvoice.*\n")
+            self.assertTrue(any(i.endswith(":reverse_ui_dependency") for i in audit(root)))
+    def test_presentation_rejects_android_and_ui_imports(self):
+        with tempfile.TemporaryDirectory() as t:
+            root = Path(t); mock(root)
+            source = root / "app/src/main/kotlin/pl/michalmatu/aicallbridge/presentation/agent/Bad.kt"
+            source.parent.mkdir(parents=True, exist_ok=True)
+            for bad in (
+                "import android.content.Context",
+                "import androidx.lifecycle.ViewModel",
+                "import pl.michalmatu.aicallbridge.ui.UiDesign",
+                "import pl.michalmatu.aicallbridge.R",
+            ):
+                source.write_text(bad + "\n")
+                self.assertTrue(
+                    any(i.endswith(":presentation_reverse_ui_dependency") for i in audit(root)),
+                    bad
+                )
+
+    def test_presentation_domain_import_remains_permitted(self):
+        with tempfile.TemporaryDirectory() as t:
+            root = Path(t); mock(root)
+            source = root / "app/src/main/kotlin/pl/michalmatu/aicallbridge/presentation/agent/Clean.kt"
+            source.parent.mkdir(parents=True, exist_ok=True)
+            source.write_text("import pl.michalmatu.aicallbridge.domain.models.AgentHubOverview\n")
+            self.assertEqual(audit(root), [])
+
 if __name__=="__main__":unittest.main()

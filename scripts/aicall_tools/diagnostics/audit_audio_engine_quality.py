@@ -36,9 +36,9 @@ def audit(root: Path) -> list[str]:
     tts = read(BASE + "localspeech/LocalTtsSpeechOutput.kt")
     settings = read(AUDIO + "AudioEngineSettingsActivity.kt")
     parakeet_service = read(AUDIO + "ParakeetModelTransferService.kt")
-    model_ui = read(BASE + "textagent/LanguageModelActivity.kt")
+    model_ui = read(BASE + "ui/modelvoice/ModelLibraryScreenActivity.kt")
     native = read(BASE + "textagent/Gemma4LiteRtTextBackend.kt")
-    editor = read(AUDIO + "ModelVoiceSettings.kt")
+    editor = read(BASE + "ui/modelvoice/ModelVoiceSettings.kt")
     input_presenter = read(BASE + "presentation/modelvoice/ModelVoiceSpeechPickerPresenter.kt")
     routing = read(BASE + "conversation/ConversationInputRoutingBackend.kt")
     for scenario in ("AppointmentMvpConversationScenario", "ScenarioOutgoingConversationScenario"):

@@ -9,7 +9,7 @@ class PermissionSettingsContract(unittest.TestCase):
         self.assertIn("requestPermissions",activity)
         for old in ("CallRuntimePreferences", "CallAudioMode", "TextLlmProvider", "selectTextModel", "selectMode"):
             self.assertNotIn(old,activity)
-        editor=(ROOT/"audioengines/ModelVoiceSettings.kt").read_text()
+        editor=(ROOT/"ui/modelvoice/ModelVoiceSettings.kt").read_text()
         self.assertIn("AudioEngineProfileStore(activity)",editor)
         self.assertIn("ModelVoiceProfileController(store::load, store::save)",editor)
         self.assertIn("profiles.select(profile)",editor)

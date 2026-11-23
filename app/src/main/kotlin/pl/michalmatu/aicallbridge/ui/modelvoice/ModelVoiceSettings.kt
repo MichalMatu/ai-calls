@@ -1,4 +1,6 @@
-package pl.michalmatu.aicallbridge.audioengines
+package pl.michalmatu.aicallbridge.ui.modelvoice
+
+import pl.michalmatu.aicallbridge.audioengines.*
 
 import android.Manifest
 import android.app.AlertDialog
@@ -19,6 +21,7 @@ import android.widget.Toast
 import java.util.concurrent.Executors
 import java.util.Locale
 import pl.michalmatu.aicallbridge.R
+import pl.michalmatu.aicallbridge.data.adapters.AndroidTtsVoiceInventoryReader
 import pl.michalmatu.aicallbridge.presentation.modelvoice.ModelVoiceProfileController
 import pl.michalmatu.aicallbridge.presentation.modelvoice.ModelVoiceEnginePickerPresenter
 import pl.michalmatu.aicallbridge.presentation.modelvoice.ModelVoiceReadinessPresenter
@@ -32,12 +35,6 @@ import pl.michalmatu.aicallbridge.textagent.LanguageModelTransferService
 import pl.michalmatu.aicallbridge.textagent.UserLiteRtModelStore
 import pl.michalmatu.aicallbridge.textagent.LiteRtModelContainer
 import pl.michalmatu.aicallbridge.ui.UiChromeActivity
-import pl.michalmatu.aicallbridge.ui.modelvoice.ModelVoiceGenerationDialog
-import pl.michalmatu.aicallbridge.ui.modelvoice.ModelVoiceModelDialog
-import pl.michalmatu.aicallbridge.ui.modelvoice.ModelVoiceVoiceOptionsView
-import pl.michalmatu.aicallbridge.ui.modelvoice.ModelVoiceEngineDialog
-import pl.michalmatu.aicallbridge.ui.modelvoice.ModelVoiceLanguageDialog
-import pl.michalmatu.aicallbridge.ui.modelvoice.ModelVoiceInputDialog
 import pl.michalmatu.aicallbridge.ui.UiDesign
 
 /** Current saved choices. Pickers save immediately; readiness remains a separate native check. */
@@ -274,29 +271,17 @@ internal class ModelVoiceSettings(
             }
             voiceWorker.execute {
                 val inventory = runCatching {
-                    val installed = engine.engines
-                    val voices = ModelVoiceTtsInventoryPolicy.availableOffline(
-                        installedEngines = installed.map { it.name },
-                        selectedEngine = requested,
-                        voices = engine.voices.orEmpty(),
-                        language = language,
-                        piperRequired = requested == PiperServiceContract.PACKAGE,
-                        languageOf = { it.locale.language },
-                        networkRequired = { it.isNetworkConnectionRequired },
-                        piperCapable = { "piperVoice" in it.features },
-                        nameOf = { it.name },
-                    )
-                    Triple(installed, voices, engine.defaultEngine)
+                    AndroidTtsVoiceInventoryReader.read(engine, requested, language)
                 }.getOrNull()
                 activity.mainExecutor.execute ready@{
                     if (!voiceState.accepts(generation) || activity.isDestroyed || activity.isFinishing) return@ready
                     voiceState.markReady()
-                    localVoices = inventory?.second.orEmpty()
+                    localVoices = inventory?.voices.orEmpty()
                     if (inventory == null) voiceIssue.text = activity.getString(R.string.mv_voice_missing)
                     else {
-                        engineIds = listOf(null) + inventory.first.map { it.name }
-                        val labels = inventory.first.map { ModelVoiceTtsInventoryPolicy.displayEngineName(it.name, it.label) }
-                        val defaultIndex = inventory.first.indexOfFirst { it.name == inventory.third }
+                        engineIds = listOf(null) + inventory.installedEngines.map { it.name }
+                        val labels = inventory.installedEngines.map { ModelVoiceTtsInventoryPolicy.displayEngineName(it.name, it.label) }
+                        val defaultIndex = inventory.installedEngines.indexOfFirst { it.name == inventory.defaultEngine }
                         val automatic = labels.getOrNull(defaultIndex)?.let {
                             activity.getString(R.string.mv_system_engine_named, it)
                         } ?: activity.getString(R.string.mv_system_engine)

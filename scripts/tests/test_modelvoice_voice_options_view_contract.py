@@ -7,7 +7,7 @@ ROOT = Path(__file__).resolve().parents[2] / "app/src/main/kotlin/pl/michalmatu/
 
 class ModelVoiceVoiceOptionsViewContract(unittest.TestCase):
     def test_owner_retains_all_effectful_callbacks(self):
-        screen = (ROOT / "audioengines/ModelVoiceSettings.kt").read_text()
+        screen = (ROOT / "ui/modelvoice/ModelVoiceSettings.kt").read_text()
         for token in (
             "ModelVoiceVoiceOptionsView(activity, options).render(",
             "ModelVoiceSpeechPickerPresenter.voiceOptions(",
@@ -15,9 +15,15 @@ class ModelVoiceVoiceOptionsViewContract(unittest.TestCase):
             "if (save(draft.copy(voiceId = id))) voiceDialog?.dismiss()",
             "onPreview = ::preview",
             "private fun preview(voiceId:",
-            "ModelVoiceTtsInventoryPolicy.availableOffline(",
+            "AndroidTtsVoiceInventoryReader.read(engine, requested, language)",
         ):
             self.assertIn(token, screen)
+
+    def test_android_inventory_policy_lives_in_data_adapter(self):
+        adapter = (ROOT / "data/adapters/AndroidTtsVoiceInventoryReader.kt").read_text()
+        self.assertIn("ModelVoiceTtsInventoryPolicy.availableOffline(", adapter)
+        self.assertIn("selectedEngine = selectedEngine", adapter)
+        self.assertIn("piperRequired = selectedEngine == PiperServiceContract.PACKAGE", adapter)
 
     def test_view_only_renders_state_and_forwards_taps(self):
         view = (ROOT / "ui/modelvoice/ModelVoiceVoiceOptionsView.kt").read_text()

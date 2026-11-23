@@ -6,7 +6,7 @@ BASE = Path(__file__).resolve().parents[2] / "app/src/main/kotlin/pl/michalmatu/
 
 class ModelPresentationBoundaryTest(unittest.TestCase):
     def test_activity_renders_typed_status_but_starts_original_service(self):
-        activity = (BASE / "textagent/LanguageModelActivity.kt").read_text()
+        activity = (BASE / "ui/modelvoice/ModelLibraryScreenActivity.kt").read_text()
         self.assertIn("LanguageModelStatusPresenter.present(", activity)
         self.assertIn("row.card.isActivated = isActive", activity)
         self.assertIn("if (!filesMode) { configuration.refresh(); return }", activity)
@@ -15,13 +15,13 @@ class ModelPresentationBoundaryTest(unittest.TestCase):
         self.assertIn("LanguageModelTransferService.status.busy", activity)
         self.assertIn("startForegroundService(Intent(this, LanguageModelTransferService::class.java)", activity)
         self.assertIn("R.string.mv_manage_files", activity)
-        editor = (BASE / "audioengines/ModelVoiceSettings.kt").read_text()
+        editor = (BASE / "ui/modelvoice/ModelVoiceSettings.kt").read_text()
         self.assertIn("ModelVoiceProfileController(store::load, store::save)", editor)
         controller = (BASE / "presentation/modelvoice/ModelVoiceProfileController.kt").read_text()
         self.assertIn("if (!save(next))", controller)
 
     def test_presenter_is_readonly_and_separates_installed_from_selected(self):
-        presenter = (BASE / "textagent/LanguageModelStatusPresenter.kt").read_text()
+        presenter = (BASE / "presentation/modelvoice/LanguageModelStatusPresenter.kt").read_text()
         for s in ("installed && selected == entry.id", "showProgress = transfer.busy",
                   "Collections.unmodifiableList", "transfer.message.takeIf"):
             self.assertIn(s, presenter)

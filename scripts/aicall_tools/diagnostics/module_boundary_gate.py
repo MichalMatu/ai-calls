@@ -14,6 +14,20 @@ BAD=re.compile(r'^\s*import\s+(?:static\s+)?(?:android\.|androidx\.|'
                r'pl\.michalmatu\.aicallbridge\.(?:ui|debug|developerrelay|session|campaign|'
                r'incoming|textagent|audioengines|identity|localcall|localspeech|tools)\.)')
 
+# The audio engine layer may serve UI presenters but must never depend on them.
+# The Android screen owner lives in ui/modelvoice, not in audioengines.
+BACKWARD_AUDIO_IMPORT = re.compile(
+    r'^\s*import\s+pl\.michalmatu\.aicallbridge\.(?:presentation|ui)\.'
+)
+
+# Presentation may depend on domain/data contracts, never on Android widgets or UI.
+# Resource identifiers belong to the UI: presentation uses semantic localization keys.
+# This gate blocks the UI package and direct app R imports from presentation.
+PRESENTATION_REVERSE_IMPORT = re.compile(
+    r'^\s*import\s+(?:static\s+)?(?:android\.|androidx\.|'
+    r'pl\.michalmatu\.aicallbridge\.(?:ui\.|R\b))'
+)
+
 def audit(root:Path)->list[str]:
     issues=[]
     settings=root/"settings.gradle.kts"
@@ -36,6 +50,31 @@ def audit(root:Path)->list[str]:
             if p.suffix not in (".kt",".java"):continue
             for no,line in enumerate(p.read_text(errors="replace").splitlines(),1):
                 if BAD.match(line):issues.append(str(p.relative_to(root))+":"+str(no)+":android_or_ui_import")
+    audio_root = root / "app/src/main/kotlin/pl/michalmatu/aicallbridge/audioengines"
+    if audio_root.exists():
+        for p in sorted(audio_root.rglob("*")):
+            if p.suffix not in (".kt", ".java"): continue
+            for no, line in enumerate(p.read_text(errors="replace").splitlines(), 1):
+                if BACKWARD_AUDIO_IMPORT.match(line):
+                    issues.append(str(p.relative_to(root)) + ":" + str(no) + ":reverse_ui_dependency")
+    text_root = root / "app/src/main/kotlin/pl/michalmatu/aicallbridge/textagent"
+    legacy_entrypoint_import = "import pl.michalmatu.aicallbridge.ui.modelvoice.ModelLibraryScreenActivity"
+    if text_root.exists():
+        for p in sorted(text_root.rglob("*")):
+            if p.suffix not in (".kt", ".java"): continue
+            for no, line in enumerate(p.read_text(errors="replace").splitlines(), 1):
+                if not BACKWARD_AUDIO_IMPORT.match(line): continue
+                if p.name == "LanguageModelActivity.kt" and line.strip() == legacy_entrypoint_import:
+                    continue
+                issues.append(str(p.relative_to(root)) + ":" + str(no) + ":reverse_ui_dependency")
+    presentation_root = root / "app/src/main/kotlin/pl/michalmatu/aicallbridge/presentation"
+    if presentation_root.exists():
+        for p in sorted(presentation_root.rglob("*")):
+            if p.suffix not in (".kt", ".java"): continue
+            for no, line in enumerate(p.read_text(errors="replace").splitlines(), 1):
+                if PRESENTATION_REVERSE_IMPORT.match(line):
+                    issues.append(str(p.relative_to(root)) + ":" + str(no) +
+                                  ":presentation_reverse_ui_dependency")
     return issues
 
 def main()->int:

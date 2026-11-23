@@ -18,13 +18,14 @@ COPY = [
         "AudioEngineProfile", "AudioEngineProfileStore", "AudioEngineReadiness", "DialogueEngineProviders",
         "AudioEngineProviders", "ParakeetSpeechInputProvider",
         "ParakeetModelDownloader", "ParakeetModelTransferService",
-        "GemmaAudioDirectInputProvider", "AudioEngineSettingsActivity", "ModelVoiceSettings",
+        "GemmaAudioDirectInputProvider", "AudioEngineSettingsActivity",
     )
-] + [MAIN + "localspeech/LocalTtsSpeechOutput.kt",
+] + [MAIN + "ui/modelvoice/ModelVoiceSettings.kt",
+     MAIN + "localspeech/LocalTtsSpeechOutput.kt",
      MAIN + "conversation/ConversationInputRoutingBackend.kt",
      MAIN + "campaign/AppointmentMvpConversationScenario.kt",
      MAIN + "campaign/ScenarioOutgoingConversationScenario.kt",
-     MAIN + "textagent/LanguageModelActivity.kt", MAIN + "textagent/Gemma4LiteRtTextBackend.kt",
+     MAIN + "ui/modelvoice/ModelLibraryScreenActivity.kt", MAIN + "textagent/Gemma4LiteRtTextBackend.kt",
     MAIN + "presentation/modelvoice/ModelVoiceSpeechPickerPresenter.kt"] + [
     TEST + name + ".kt" for name in (
         "AndroidAudioEngineProfileStoreContractTest",
@@ -75,7 +76,7 @@ class AudioEngineQualityGateTest(unittest.TestCase):
 
     def test_parakeet_download_ui_must_use_foreground_service(self):
         self.check_mutation(
-            MAIN + "textagent/LanguageModelActivity.kt",
+            MAIN + "ui/modelvoice/ModelLibraryScreenActivity.kt",
             "startForegroundService(Intent(this, ParakeetModelTransferService::class.java)",
             "startService(Intent(this, ParakeetModelTransferService::class.java)",
             "user-triggered-Parakeet-download",

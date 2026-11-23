@@ -10,7 +10,7 @@ class Ux08SourceContract(unittest.TestCase):
         return (ROOT / relative).read_text()
 
     def test_verify_cannot_accidentally_start_a_615mb_transfer(self):
-        activity = self.read("textagent/LanguageModelActivity.kt")
+        activity = self.read("ui/modelvoice/ModelLibraryScreenActivity.kt")
         service = self.read("audioengines/ParakeetModelTransferService.kt")
         downloader = self.read("audioengines/ParakeetModelDownloader.kt")
         for token in ("ParakeetModelTransferService.VERIFY", "ParakeetModelTransferService.START",
@@ -42,7 +42,7 @@ class Ux08SourceContract(unittest.TestCase):
         settings = self.read("ui/SettingsHubActivity.kt")
         self.assertEqual(1, settings.count("LanguageModelActivity::class.java"))
         self.assertNotIn("AudioEngineSettingsActivity::class.java", settings)
-        model = self.read("textagent/LanguageModelActivity.kt")
+        model = self.read("ui/modelvoice/ModelLibraryScreenActivity.kt")
         self.assertIn("putExtra(FILES_MODE, true)", model)
         campaign = self.read("campaign/AppointmentMvpActivity.kt")
         for action in ("appointment-authorize-call", "ACTION_CANCEL_OUTGOING_TASK", "takeOver(active)"):

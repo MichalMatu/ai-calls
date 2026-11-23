@@ -57,7 +57,7 @@ class MinimalUiContract(unittest.TestCase):
         self.assertNotIn("RadioGroup(this)",hub)
         # Keep native choices after separating the coordinator from Android views.
         # Assert owner wiring and the actual controls, not their former file location.
-        owner=(K/"audioengines/ModelVoiceSettings.kt").read_text()
+        owner=(K/"ui/modelvoice/ModelVoiceSettings.kt").read_text()
         input_dialog=(K/"ui/modelvoice/ModelVoiceSpeechDialogs.kt").read_text()
         model_dialog=(K/"ui/modelvoice/ModelVoiceModelDialog.kt").read_text()
         voice_view=(K/"ui/modelvoice/ModelVoiceVoiceOptionsView.kt").read_text()

@@ -11,7 +11,7 @@ class UiPolishSprintContract(unittest.TestCase):
             self.assertIn(token,design)
         self.assertIn("OnGlobalLayoutListener",chrome)
     def test_model_state_drives_visibility(self):
-        source=(ROOT/"textagent/LanguageModelActivity.kt").read_text()
+        source=(ROOT/"ui/modelvoice/ModelLibraryScreenActivity.kt").read_text()
         for token in ('tag = "model-card:"', 'tag = "model-transfer-cancel"',
                       "row.download.visibility", "row.import.visibility",
                       'tag = "model-details-toggle:"', "row.progress.visibility"):
@@ -35,7 +35,7 @@ class UiPolishSprintContract(unittest.TestCase):
             self.assertIn(token,camp)
     def test_preparation_and_engine_keep_original_policy(self):
         prep=(ROOT/"conversation/ConversationPreparationActivity.kt").read_text()
-        engine=(ROOT/"audioengines/ModelVoiceSettings.kt").read_text()
+        engine=(ROOT/"ui/modelvoice/ModelVoiceSettings.kt").read_text()
         for token in ("RadioGroup(this)", "store.save(selected)",
                       "confirmDiscard(", 'tag = "preparation-actions"'):
             self.assertIn(token,prep)
@@ -47,7 +47,7 @@ class UiPolishSprintContract(unittest.TestCase):
         self.assertIn("AudioEngineRegistry::incompatibility",controller)
         self.assertIn("if (!save(next))",controller)
         service=(ROOT/"audioengines/ParakeetModelTransferService.kt").read_text()
-        models=(ROOT/"textagent/LanguageModelActivity.kt").read_text()
+        models=(ROOT/"ui/modelvoice/ModelLibraryScreenActivity.kt").read_text()
         self.assertIn("ParakeetModelDownloader(this)", service)
         self.assertIn("startForegroundService(Intent(this, ParakeetModelTransferService::class.java)", models)
         self.assertNotIn("downloadParakeet()", engine)

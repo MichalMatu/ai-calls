@@ -7,7 +7,7 @@ ROOT = Path(__file__).resolve().parents[2] / "app/src/main/kotlin/pl/michalmatu/
 
 class ModelVoiceEngineDialogContract(unittest.TestCase):
     def test_owner_applies_selection_with_voice_reset(self):
-        screen = (ROOT / "audioengines/ModelVoiceSettings.kt").read_text()
+        screen = (ROOT / "ui/modelvoice/ModelVoiceSettings.kt").read_text()
         for token in (
             "ModelVoiceEnginePickerPresenter.present(", "ModelVoiceEngineDialog(",
             "ttsEnginePackage = packageName, voiceId = null", "SpeechOutputId.ANDROID_TTS_PL",

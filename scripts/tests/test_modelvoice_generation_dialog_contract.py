@@ -7,7 +7,7 @@ ROOT = Path(__file__).resolve().parents[2] / "app/src/main/kotlin/pl/michalmatu/
 
 class ModelVoiceGenerationDialogContract(unittest.TestCase):
     def test_owner_remains_the_only_profile_save_authority(self):
-        owner = (ROOT / "audioengines/ModelVoiceSettings.kt").read_text()
+        owner = (ROOT / "ui/modelvoice/ModelVoiceSettings.kt").read_text()
         dialog = (ROOT / "ui/modelvoice/ModelVoiceGenerationDialog.kt").read_text()
         self.assertIn("ModelVoiceGenerationDialog(activity, draft.generation)", owner)
         self.assertIn("save(draft.copy(generation = generation))", owner)

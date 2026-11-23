@@ -55,7 +55,8 @@ class Ux09Contract(unittest.TestCase):
         reader = read("data/adapters/AndroidAgentHubOverviewReader.kt")
         formatter = read("presentation/agent/AgentHubSummaryFormatter.kt")
         self.assertIn("AndroidIdentityVault.create(applicationContext).availableFields().getOrThrow().size", reader)
-        self.assertIn("skills_hub_summary", formatter)
+        self.assertIn("AgentSummaryTextKey.SKILLS_SUMMARY", formatter)
+        self.assertIn("R.string.skills_hub_summary", text)
         self.assertNotIn("withPlaintext", text + reader + formatter)
         self.assertNotIn(".get(IdentityFieldId.", text + reader + formatter)
 
