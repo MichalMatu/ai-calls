@@ -14,8 +14,10 @@ class OutgoingWizardFastflowTest(unittest.TestCase):
         self.assertNotIn('tag = "task-refresh-window"', wizard)
         self.assertIn('if (PhoneTaskScheduleUiPolicy.expired(current.scheduled, startTime, endTime, now))', wizard)
         self.assertIn('PhoneTaskScheduleUiPolicy.refreshDefaults', wizard)
-        self.assertIn('require(!draft.scheduled || start > now)', wizard)
-        self.assertIn('requireNotNull(draft.subscriptionId)', wizard)
+        factory = (ROOT / "app/src/main/kotlin/pl/michalmatu/aicallbridge/campaign/PhoneTaskApprovalFactory.kt").read_text()
+        self.assertIn('PhoneTaskApprovalFactory.build(draft, brief(), now, speechLanguage)', wizard)
+        self.assertIn('require(!draft.scheduled || start > now)', factory)
+        self.assertIn('requireNotNull(draft.subscriptionId)', factory)
     def test_labels_bilingual(self):
         for locale in ("values","values-en"):
             strings = (ROOT / "app/src/main/res" / locale / "strings.xml").read_text()
