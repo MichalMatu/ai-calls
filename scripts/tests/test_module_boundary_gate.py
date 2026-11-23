@@ -112,4 +112,44 @@ class ModuleGateTest(unittest.TestCase):
             source.write_text("import pl.michalmatu.aicallbridge.domain.models.AgentHubOverview\n")
             self.assertEqual(audit(root), [])
 
+
+    def test_domain_layer_is_android_free_and_cannot_reach_data_or_ui(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp); mock(root)
+            source = root / "app/src/main/kotlin/pl/michalmatu/aicallbridge/domain/models/Bad.kt"
+            source.parent.mkdir(parents=True, exist_ok=True)
+            for bad in (
+                "import android.content.Context",
+                "import androidx.lifecycle.ViewModel",
+                "import pl.michalmatu.aicallbridge.ui.UiDesign",
+                "import pl.michalmatu.aicallbridge.data.adapters.AndroidHomeOverviewReader",
+                "import pl.michalmatu.aicallbridge.presentation.agent.AgentHubSummaryFormatter",
+                "import pl.michalmatu.aicallbridge.R",
+            ):
+                source.write_text(bad + "\n")
+                self.assertTrue(any(issue.endswith(":domain_reverse_dependency") for issue in audit(root)), bad)
+
+    def test_data_adapters_cannot_import_presentation_or_ui(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp); mock(root)
+            source = root / "app/src/main/kotlin/pl/michalmatu/aicallbridge/data/adapters/Bad.kt"
+            source.parent.mkdir(parents=True, exist_ok=True)
+            for bad in (
+                "import pl.michalmatu.aicallbridge.ui.UiDesign",
+                "import pl.michalmatu.aicallbridge.presentation.agent.AgentHubSummaryFormatter",
+                "import pl.michalmatu.aicallbridge.R",
+            ):
+                source.write_text(bad + "\n")
+                self.assertTrue(any(issue.endswith(":data_reverse_ui_dependency") for issue in audit(root)), bad)
+            source.write_text("import android.content.Context\n")
+            self.assertEqual(audit(root), [])
+
+    def test_presentation_cannot_import_data_adapter(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp); mock(root)
+            source = root / "app/src/main/kotlin/pl/michalmatu/aicallbridge/presentation/Bad.kt"
+            source.parent.mkdir(parents=True, exist_ok=True)
+            source.write_text("import pl.michalmatu.aicallbridge.data.adapters.AndroidHomeOverviewReader\n")
+            self.assertTrue(any(issue.endswith(":presentation_reverse_ui_dependency") for issue in audit(root)))
+
 if __name__=="__main__":unittest.main()
