@@ -7,7 +7,7 @@ ROOT = Path(__file__).resolve().parents[2] / "app/src/main/kotlin/pl/michalmatu/
 
 class ModelVoiceSpeechDialogContract(unittest.TestCase):
     def test_screen_retains_validation_and_selection_authority(self):
-        owner = (ROOT / "audioengines/ModelVoiceSettings.kt").read_text()
+        owner = (ROOT / "ui/modelvoice/ModelVoiceSettings.kt").read_text()
         self.assertIn("ModelVoiceLanguageDialog(activity, draft.languageTag)", owner)
         self.assertIn("ModelVoiceSelectionPolicy.forLanguage(draft, selected)", owner)
         self.assertIn("ModelVoiceInputDialog(", owner)

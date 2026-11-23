@@ -28,7 +28,7 @@ import pl.michalmatu.aicallbridge.audioengines.ParakeetModelFile
 import pl.michalmatu.aicallbridge.audioengines.ParakeetModelTransferService
 import pl.michalmatu.aicallbridge.audioengines.ParakeetModelIntegrity
 import pl.michalmatu.aicallbridge.audioengines.SpeechInputId
-import pl.michalmatu.aicallbridge.audioengines.ModelVoiceSettings
+import pl.michalmatu.aicallbridge.ui.modelvoice.ModelVoiceSettings
 import pl.michalmatu.aicallbridge.audioengines.ModelCompatibilityStore
 import pl.michalmatu.aicallbridge.audioengines.ModelCompatibilityProbe
 import pl.michalmatu.aicallbridge.audioengines.ModelVerificationUi

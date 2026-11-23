@@ -7,7 +7,7 @@ ROOT = Path(__file__).resolve().parents[2] / "app/src/main/kotlin/pl/michalmatu/
 
 class ModelVoiceVoiceOptionsViewContract(unittest.TestCase):
     def test_owner_retains_all_effectful_callbacks(self):
-        screen = (ROOT / "audioengines/ModelVoiceSettings.kt").read_text()
+        screen = (ROOT / "ui/modelvoice/ModelVoiceSettings.kt").read_text()
         for token in (
             "ModelVoiceVoiceOptionsView(activity, options).render(",
             "ModelVoiceSpeechPickerPresenter.voiceOptions(",

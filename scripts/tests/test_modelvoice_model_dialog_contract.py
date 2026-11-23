@@ -7,7 +7,7 @@ ROOT = Path(__file__).resolve().parents[2] / "app/src/main/kotlin/pl/michalmatu/
 
 class ModelVoiceModelDialogContract(unittest.TestCase):
     def test_qualified_imports_remain_owner_responsibility(self):
-        owner = (ROOT / "audioengines/ModelVoiceSettings.kt").read_text()
+        owner = (ROOT / "ui/modelvoice/ModelVoiceSettings.kt").read_text()
         for token in ("library.isInstalled(model)", "LiteRtModelContainer.hasHeader(file)",
                       "ModelCompatibilityStore(activity).verified(file, false)",
                       "ModelVoiceModelPickerPresenter.present(", "ModelVoiceModelDialog(",

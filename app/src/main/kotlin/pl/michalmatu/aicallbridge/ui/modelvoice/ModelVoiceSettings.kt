@@ -1,4 +1,6 @@
-package pl.michalmatu.aicallbridge.audioengines
+package pl.michalmatu.aicallbridge.ui.modelvoice
+
+import pl.michalmatu.aicallbridge.audioengines.*
 
 import android.Manifest
 import android.app.AlertDialog
@@ -32,12 +34,6 @@ import pl.michalmatu.aicallbridge.textagent.LanguageModelTransferService
 import pl.michalmatu.aicallbridge.textagent.UserLiteRtModelStore
 import pl.michalmatu.aicallbridge.textagent.LiteRtModelContainer
 import pl.michalmatu.aicallbridge.ui.UiChromeActivity
-import pl.michalmatu.aicallbridge.ui.modelvoice.ModelVoiceGenerationDialog
-import pl.michalmatu.aicallbridge.ui.modelvoice.ModelVoiceModelDialog
-import pl.michalmatu.aicallbridge.ui.modelvoice.ModelVoiceVoiceOptionsView
-import pl.michalmatu.aicallbridge.ui.modelvoice.ModelVoiceEngineDialog
-import pl.michalmatu.aicallbridge.ui.modelvoice.ModelVoiceLanguageDialog
-import pl.michalmatu.aicallbridge.ui.modelvoice.ModelVoiceInputDialog
 import pl.michalmatu.aicallbridge.ui.UiDesign
 
 /** Current saved choices. Pickers save immediately; readiness remains a separate native check. */
