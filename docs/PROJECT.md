@@ -1,6 +1,6 @@
-# AI Calls — MVP 0.2.2
+# AI Calls — MVP 0.2.3 (release candidate)
 
-**Stan: MVP preview, rozwój wstrzymany (23.11.2026).** Kod na `main`; aplikacja testowa `.s8lab` instalowana obok głównego dialera. Zmiany FE/Presentation/Domain/Data zamknięto na obecny zakres bez redesignu.
+**Stan: poprawka parowania Wireless ADB w trakcie fizycznego odbioru; publikacja 0.2.3 po udanym teście (23.11.2026).** Kod na `main`; aplikacja testowa `.s8lab` instalowana obok głównego dialera. Zmiany FE/Presentation/Domain/Data zamknięto na obecny zakres bez redesignu.
 
 ## Potwierdzone
 
@@ -10,7 +10,7 @@
 
 ## Otwarte
 
-Pełne fizyczne EN GSM i outgoing na bieżącym APK; docelowy model podpisywania/IPC i kwalifikacja produkcyjna. MVP nie jest wydaniem produkcyjnym.
+Pełne fizyczne EN GSM i outgoing na bieżącym APK; docelowy model podpisywania/IPC i kwalifikacja produkcyjna. MVP nie jest wydaniem produkcyjnym. Wydanie 0.2.2 nie udostępniało aktywnego hosta GSM w pakiecie produkcyjnym; poprawka 0.2.3 wymaga czystego parowania użytkownika.
 
 **WSTRZYMANE:** Shizuku, GitHub Actions, schedulery, `WRITE_SECURE_SETTINGS`.
 
