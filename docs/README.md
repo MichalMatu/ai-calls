@@ -1,5 +1,7 @@
-# AI Calls — dokumentacja
+# AI Calls — dokumentacja MVP
 
-[Stan MVP i odbiór](PROJECT.md) · [QA](operations/DEVELOPMENT.md) · [Wznowienie pracy](operations/HANDOFF_NEXT_CHAT.md) · [Mac Local Agent](operations/LOCAL_AGENT.md)
+[Stan](PROJECT.md) · [Architektura](architecture/SYSTEM.md) · [Bezpieczeństwo](architecture/SECURITY.md) · [Mapa ekranów](architecture/UI_SCREEN_MAP.md)
 
-[Architektura](architecture/SYSTEM.md) · [Bezpieczeństwo](architecture/SECURITY.md) · [Rozmowa i Test Lab](modules/CONVERSATION.md) · [Telefonia](modules/INCOMING_OUTGOING.md) · [UI](modules/UI.md) · [Mapa ekranów i ustawień](architecture/UI_SCREEN_MAP.md)
+[Rozmowa](modules/CONVERSATION.md) · [Telefonia](modules/INCOMING_OUTGOING.md) · [UI](modules/UI.md)
+
+[Budowanie i QA](operations/DEVELOPMENT.md) · [Local Agent](operations/LOCAL_AGENT.md) · [Wznowienie](operations/HANDOFF_NEXT_CHAT.md)
