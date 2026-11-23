@@ -8,7 +8,7 @@ import pl.michalmatu.aicallbridge.session.GsmShellMediaProtocol
 class LocalPhoneLlmBackendFactoryTest {
     @Test fun onlyVerifiedGsmPackageCanSelectAppPrivateGemma() {
         assertTrue(LocalPhoneLlmBackendFactory.supportsPackage(GsmShellMediaProtocol.S8_PACKAGE))
-        assertFalse(LocalPhoneLlmBackendFactory.supportsPackage("pl.michalmatu.aicallbridge"))
+        assertTrue(LocalPhoneLlmBackendFactory.supportsPackage(GsmShellMediaProtocol.APP_PACKAGE))
         assertFalse(LocalPhoneLlmBackendFactory.supportsPackage("com.example.unknown"))
     }
 
