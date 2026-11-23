@@ -17,7 +17,7 @@ BAD=re.compile(r'^\s*import\s+(?:static\s+)?(?:android\.|androidx\.|'
 # The audio engine layer may serve UI presenters but must never depend on them.
 # The Android screen owner lives in ui/modelvoice, not in audioengines.
 BACKWARD_AUDIO_IMPORT = re.compile(
-    r'^\\s*import\\s+pl\\.michalmatu\\.aicallbridge\\.(?:presentation|ui)\\.'
+    r'^\s*import\s+pl\.michalmatu\.aicallbridge\.(?:presentation|ui)\.'
 )
 
 def audit(root:Path)->list[str]:
