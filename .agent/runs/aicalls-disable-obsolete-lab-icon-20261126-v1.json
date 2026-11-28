@@ -1,0 +1,13 @@
+{
+  "event": "task_finished",
+  "task_id": "aicalls-disable-obsolete-lab-icon-20261126-v1",
+  "task_digest": "6a39f5d473827acc7427b06cb96807f04126812b2a2bc87e7873d99ffb330295",
+  "status": "done",
+  "failure_reason": null,
+  "finished_at": "2026-11-25T23:39:02.108033+00:00",
+  "attempt_id": "021163bc4417c64f44744666",
+  "daemon_version": "4.20.16",
+  "daemon_pid": 79354,
+  "updated_at": "2026-11-25T23:39:02.337163+00:00",
+  "pid": 79354
+}

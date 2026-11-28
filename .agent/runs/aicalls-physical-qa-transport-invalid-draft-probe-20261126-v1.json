@@ -1,0 +1,13 @@
+{
+  "event": "task_finished",
+  "task_id": "aicalls-physical-qa-transport-invalid-draft-probe-20261126-v1",
+  "task_digest": "765c5e04454818dab5bde424104a802a04ccb1cff455126d6ea150c18152cb4d",
+  "status": "done",
+  "failure_reason": null,
+  "finished_at": "2026-11-25T23:53:00.191659+00:00",
+  "attempt_id": "35180bcc291ac8b906fb5204",
+  "daemon_version": "4.20.16",
+  "daemon_pid": 97093,
+  "updated_at": "2026-11-25T23:53:00.444433+00:00",
+  "pid": 97093
+}

@@ -1,0 +1,13 @@
+{
+  "event": "task_finished",
+  "task_id": "aicalls-mvp-022-prod-install-probe-20261123-v1",
+  "task_digest": "70741074f7a41ebc3ce837bf4ffa0414a7ce31cfad9a4c41e03d931367d620ca",
+  "status": "done",
+  "failure_reason": null,
+  "finished_at": "2026-11-23T16:56:17.257273+00:00",
+  "attempt_id": "4ccb907fd8489c9e8d710efd",
+  "daemon_version": "4.20.16",
+  "daemon_pid": 73572,
+  "updated_at": "2026-11-23T16:56:17.521879+00:00",
+  "pid": 73572
+}

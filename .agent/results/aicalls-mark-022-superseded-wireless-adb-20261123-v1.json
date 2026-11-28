@@ -1,0 +1,61 @@
+{
+  "allow_write": true,
+  "attempt_id": "30e703e5f8b3bae730bdfe5f",
+  "command_timeout": 600,
+  "commands": [
+    {
+      "background_process_leak": false,
+      "captured_output_chars": 94,
+      "command": "set -euo pipefail\ngh auth status >/dev/null 2>&1\nDIR=\"$(mktemp -d /tmp/aicalls-release022-note-XXXXXX)\"\ntrap 'rm -rf \"$DIR\"' EXIT\ngh release view v0.2.2 -R MichalMatu/ai-calls --json body --jq .body > \"$DIR/original\"\ncat > \"$DIR/new\" <<'EOF'\n**KNOWN MVP BLOCKER (2026-11-23):** v0.2.2 cannot self-pair Wireless ADB or start the production GSM host because that path was restricted to the separate test package. Do not use this APK for GSM calling. A corrected 0.2.3 build is undergoing clean-device acceptance before public release.\n\n---\n\nEOF\ncat \"$DIR/original\" >> \"$DIR/new\"\ngh release edit v0.2.2 -R MichalMatu/ai-calls --notes-file \"$DIR/new\" --prerelease\ngh release view v0.2.2 -R MichalMatu/ai-calls --json body --jq .body | grep -q 'KNOWN MVP BLOCKER'\necho \"OLD_RELEASE_BLOCKER_DISCLOSED=true\"",
+      "current_rss_mb": 49.34,
+      "elapsed_seconds": 2.807,
+      "exit_code": 0,
+      "idle_timed_out": false,
+      "memory_limit_mb": 1024,
+      "memory_limited": false,
+      "output": "https://github.com/MichalMatu/ai-calls/releases/tag/v0.2.2\nOLD_RELEASE_BLOCKER_DISCLOSED=true\n",
+      "output_policy": "stream",
+      "output_truncated": false,
+      "peak_rss_mb": 49.34,
+      "stage_index": 1,
+      "stage_name": "note-public-v0-2-2-gsm-first-use-blocker",
+      "stage_phase": "commands",
+      "stage_timeout": 600,
+      "stage_total": 1,
+      "timed_out": false
+    }
+  ],
+  "daemon_version": "4.20.16",
+  "edits": {},
+  "finished_at": "2026-11-23T17:31:58.454839+00:00",
+  "git_diff": {
+    "elapsed_seconds": 0.083,
+    "exit_code": 0,
+    "output": ""
+  },
+  "git_status": {
+    "elapsed_seconds": 0.087,
+    "exit_code": 0,
+    "output": ""
+  },
+  "id": "aicalls-mark-022-superseded-wireless-adb-20261123-v1",
+  "idle_timeout": 300,
+  "memory_limit_mb": 1024,
+  "mode": "commands",
+  "stages": [
+    {
+      "elapsed_seconds": 2.807,
+      "outcome": "passed",
+      "stage_index": 1,
+      "stage_name": "note-public-v0-2-2-gsm-first-use-blocker",
+      "stage_phase": "commands",
+      "stage_total": 1
+    }
+  ],
+  "started_at": "2026-11-23T17:31:53.979852+00:00",
+  "status": "done",
+  "task_digest": "8a7e6e743f07650b8fc078df8d2b63f36d510d2553bf3e91ac8beb4fbfb393a9",
+  "task_timeout": 900,
+  "verification": [],
+  "work_branch": "main"
+}

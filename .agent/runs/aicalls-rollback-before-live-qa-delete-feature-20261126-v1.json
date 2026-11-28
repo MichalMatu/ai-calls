@@ -1,0 +1,13 @@
+{
+  "event": "task_finished",
+  "task_id": "aicalls-rollback-before-live-qa-delete-feature-20261126-v1",
+  "task_digest": "b1dee9c4990995cc99ecee179bd82e9feea67226260749e50285b29b65f05098",
+  "status": "done",
+  "failure_reason": null,
+  "finished_at": "2026-11-25T23:59:01.619463+00:00",
+  "attempt_id": "7c369d346a9be0a2396d55e4",
+  "daemon_version": "4.20.16",
+  "daemon_pid": 3374,
+  "updated_at": "2026-11-25T23:59:01.877290+00:00",
+  "pid": 3374
+}

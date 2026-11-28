@@ -1,0 +1,62 @@
+{
+  "allow_write": true,
+  "attempt_id": "f505f77e3322f3ac977635af",
+  "command_timeout": 900,
+  "commands": [
+    {
+      "background_process_leak": false,
+      "captured_output_chars": 60,
+      "command": "set -euo pipefail\ntest \"$(uname -s)\" = Darwin\ngh auth status >/dev/null 2>&1\nEXPECTED_MAIN=4f5c261301b865ea4af1bbb8d274c7dbd469d707\nACTUAL_MAIN=\"$(gh api repos/MichalMatu/ai-calls/branches/main --jq '.commit.sha')\"\nif [[ \"$ACTUAL_MAIN\" != \"$EXPECTED_MAIN\" ]]; then echo \"MAIN_CHANGED_STOP=true\"; exit 40; fi\nCURRENT_FIX=\"fix/release-wireless-adb-20261123\"\nmapfile -t BRANCHES < <(gh api --paginate repos/MichalMatu/ai-calls/branches --jq '.[].name' | sort -u)\nprintf 'BRANCH_COUNT_BEFORE=%s\\n' \"${#BRANCHES[@]}\"\nprintf '%s\\n' \"${BRANCHES[@]}\" | grep -qx 'main'\nprintf '%s\\n' \"${BRANCHES[@]}\" | grep -qx 'agent-control'\nprintf '%s\\n' \"${BRANCHES[@]}\" | grep -qx \"$CURRENT_FIX\"\nOPEN=\"$(gh pr list -R MichalMatu/ai-calls --state open --json number --jq 'length')\"\ntest \"$OPEN\" = 0 || { echo \"OPEN_PRS_REFUSE_DELETE=true\"; exit 41; }\nCOUNT=0\nfor b in \"${BRANCHES[@]}\"; do\n  case \"$b\" in main|agent-control|fix/release-wireless-adb-20261123) continue;; esac\n  echo \"DELETING_WORK_BRANCH=$b\"\n  gh api -X DELETE \"repos/MichalMatu/ai-calls/git/refs/heads/$b\" >/dev/null\n  COUNT=$((COUNT+1))\ndone\necho \"OLD_WORK_BRANCHES_DELETED=$COUNT\"\nmapfile -t REMAIN < <(gh api --paginate repos/MichalMatu/ai-calls/branches --jq '.[].name' | sort -u)\nprintf 'REMAINING_BRANCHES=%s\\n' \"${REMAIN[*]}\"\ntest \"${#REMAIN[@]}\" -eq 3\nprintf '%s\\n' \"${REMAIN[@]}\" | grep -qx 'main'\nprintf '%s\\n' \"${REMAIN[@]}\" | grep -qx 'agent-control'\nprintf '%s\\n' \"${REMAIN[@]}\" | grep -qx \"$CURRENT_FIX\"\necho \"OLD_BRANCH_CLEANUP_PASS=true\"",
+      "current_rss_mb": 1.91,
+      "elapsed_seconds": 1.508,
+      "exit_code": 2,
+      "idle_timed_out": false,
+      "memory_limit_mb": 1024,
+      "memory_limited": false,
+      "output": "/bin/sh: -c: line 7: syntax error near unexpected token `<'\n",
+      "output_policy": "stream",
+      "output_truncated": false,
+      "peak_rss_mb": 1.91,
+      "stage_index": 1,
+      "stage_name": "delete-merged-or-abandoned-working-refs-except-current-fix",
+      "stage_phase": "commands",
+      "stage_timeout": 900,
+      "stage_total": 1,
+      "timed_out": false
+    }
+  ],
+  "daemon_version": "4.20.16",
+  "edits": {},
+  "failure_reason": "command_failed",
+  "finished_at": "2026-11-23T17:28:41.504005+00:00",
+  "git_diff": {
+    "elapsed_seconds": 0.087,
+    "exit_code": 0,
+    "output": ""
+  },
+  "git_status": {
+    "elapsed_seconds": 0.147,
+    "exit_code": 0,
+    "output": ""
+  },
+  "id": "aicalls-cleanup-old-working-branches-20261123-v1",
+  "idle_timeout": 300,
+  "memory_limit_mb": 1024,
+  "mode": "commands",
+  "stages": [
+    {
+      "elapsed_seconds": 1.508,
+      "outcome": "failed",
+      "stage_index": 1,
+      "stage_name": "delete-merged-or-abandoned-working-refs-except-current-fix",
+      "stage_phase": "commands",
+      "stage_total": 1
+    }
+  ],
+  "started_at": "2026-11-23T17:28:38.246650+00:00",
+  "status": "failed",
+  "task_digest": "f18113e80d6c2419441c2238b3c00430d52be1fb9bc9d7d42dbfd144cd6e40dc",
+  "task_timeout": 1200,
+  "verification": [],
+  "work_branch": "main"
+}

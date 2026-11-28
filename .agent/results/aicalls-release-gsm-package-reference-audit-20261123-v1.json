@@ -1,0 +1,62 @@
+{
+  "allow_write": false,
+  "attempt_id": "3b682b47b2f651c438954008",
+  "command_timeout": 600,
+  "commands": [
+    {
+      "background_process_leak": false,
+      "captured_output_chars": 221,
+      "command": "set -euo pipefail\ntest \"$(uname -s)\" = Darwin\ntest -z \"$(git status --porcelain)\"\ngit fetch --no-tags origin main\nROOT=\"$(git rev-parse --show-toplevel)\"\nWORK=\"$(mktemp -d /tmp/aicalls-release-gsm-audit-XXXXXX)\"\ntrap 'cd \"$ROOT\"; git worktree remove --force \"$WORK\" >/dev/null 2>&1 || true' EXIT\ngit worktree add --detach \"$WORK\" origin/main >/dev/null\ncd \"$WORK\"\necho \"SHA=$(git rev-parse HEAD)\"\nrg -n 'GsmShellMediaProtocol\\.S8_PACKAGE|\\.S8_PACKAGE|\\.gsmbinder|CallMediaBackendMode|LocalAdbGsmPolicy\\.(START|STATUS)' app/src/main scripts | head -n 190\necho \"AUDIT_DONE=true\"",
+      "current_rss_mb": 3.25,
+      "elapsed_seconds": 1.606,
+      "exit_code": 127,
+      "idle_timed_out": false,
+      "memory_limit_mb": 1024,
+      "memory_limited": false,
+      "output": "From https://github.com/MichalMatu/ai-calls\n * branch              main       -> FETCH_HEAD\nPreparing worktree (detached HEAD 4f5c2613)\nSHA=4f5c261301b865ea4af1bbb8d274c7dbd469d707\n/bin/sh: line 10: rg: command not found\n",
+      "output_policy": "stream",
+      "output_truncated": false,
+      "peak_rss_mb": 3.25,
+      "stage_index": 1,
+      "stage_name": "list-release-gsm-package-gates",
+      "stage_phase": "commands",
+      "stage_timeout": 600,
+      "stage_total": 1,
+      "timed_out": false
+    }
+  ],
+  "daemon_version": "4.20.16",
+  "edits": {},
+  "failure_reason": "command_failed",
+  "finished_at": "2026-11-23T17:18:44.034444+00:00",
+  "git_diff": {
+    "elapsed_seconds": 0.139,
+    "exit_code": 0,
+    "output": ""
+  },
+  "git_status": {
+    "elapsed_seconds": 0.111,
+    "exit_code": 0,
+    "output": ""
+  },
+  "id": "aicalls-release-gsm-package-reference-audit-20261123-v1",
+  "idle_timeout": 300,
+  "memory_limit_mb": 1024,
+  "mode": "commands",
+  "stages": [
+    {
+      "elapsed_seconds": 1.606,
+      "outcome": "failed",
+      "stage_index": 1,
+      "stage_name": "list-release-gsm-package-gates",
+      "stage_phase": "commands",
+      "stage_total": 1
+    }
+  ],
+  "started_at": "2026-11-23T17:18:40.623935+00:00",
+  "status": "failed",
+  "task_digest": "7b30efc0de79a0ebf98b676ed9c908629a40ad94b685707899bea0a536b90eba",
+  "task_timeout": 900,
+  "verification": [],
+  "work_branch": "main"
+}

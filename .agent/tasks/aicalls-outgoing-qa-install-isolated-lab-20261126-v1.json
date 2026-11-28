@@ -1,0 +1,24 @@
+{
+  "id": "aicalls-outgoing-qa-install-isolated-lab-20261126-v1",
+  "dedupe_key": "aicalls-outgoing-qa-install-isolated-lab-20261126-v1",
+  "dedupe_revision": 1,
+  "agent_binding": "c25f88c0-4682-414c-8062-c47fa4034cb0",
+  "mode": "commands",
+  "work_branch": "main",
+  "allow_write": true,
+  "resources": [
+    "adb:rfct70l7e8j"
+  ],
+  "output_policy": "summary",
+  "command_timeout": 2400,
+  "idle_timeout": 600,
+  "task_timeout": 3000,
+  "memory_limit_mb": 6144,
+  "steps": [
+    {
+      "name": "install-sha-verified-side-by-side-lab-preserve-production-dialer",
+      "timeout": 2400,
+      "command": "set -euo pipefail\ntest \"$(uname -s)\" = Darwin\ntest -z \"$(git status --porcelain)\"\ngit fetch --no-tags origin feat/outgoing-live-qa-20261125\ntest \"$(git rev-parse refs/remotes/origin/feat/outgoing-live-qa-20261125)\" = \"4e70f6a8860c87163164b426e27e62a7eac62709\"\nROOT=\"$(git rev-parse --show-toplevel)\"\nWORK=\"$(mktemp -d /tmp/aicalls-lab-install-XXXXXX)\"\ntrap 'cd \"$ROOT\"; git worktree remove --force \"$WORK\" >/dev/null 2>&1 || true' EXIT\ngit worktree add --detach \"$WORK\" \"4e70f6a8860c87163164b426e27e62a7eac62709\"\ncd \"$WORK\"\necho \"QA_SHA=4e70f6a8860c87163164b426e27e62a7eac62709\"\necho STAGE=BUILD_APK_ONLY\n# Host QA already passed this exact source SHA. No repeated unit tests.\nbash scripts/bin/test-profile.sh device-build\nPKG=pl.michalmatu.aicallbridge.s8lab\nPROD=pl.michalmatu.aicallbridge\nAPP=app/build/outputs/apk/debug/app-debug.apk\ntest -s \"$APP\"\nSERIAL=\"$(PYTHONPATH=scripts python3 -m aicall_tools.device.s22_adb_discovery --serial RFCT70L7E8J)\"\nphone_idle() {\n  local state mode\n  state=\"$(adb -s \"$SERIAL\" shell dumpsys telephony.registry | sed -n 's/.*mCallState=\\([0-9]\\).*/\\1/p' | head -n1 | tr -d '\\r')\"\n  mode=\"$(adb -s \"$SERIAL\" shell dumpsys audio | sed -n 's/.*Actual mode = \\(MODE_[A-Z_]*\\).*/\\1/p' | head -n1 | tr -d '\\r')\"\n  [[ \"$state\" == 0 && \"$mode\" == MODE_NORMAL ]]\n}\nrole() {\n  adb -s \"$SERIAL\" shell cmd role get-role-holders --user 0 android.app.role.DIALER | tr -d '\\r'\n}\nphone_idle || { echo PHONE_NOT_IDLE=true; exit 50; }\ntest \"$(role)\" = \"$PROD\" || { echo DIALER_ROLE_CHANGED=true; exit 51; }\ntest \"$(adb -s \"$SERIAL\" shell getprop ro.build.version.release | tr -d '\\r')\" = 16\nprod_before=\"$(adb -s \"$SERIAL\" shell pm path \"$PROD\" | tr -d '\\r')\"\n[[ \"$prod_before\" == package:* ]] || exit 52\nif [[ \"$(adb -s \"$SERIAL\" shell pm path \"$PKG\" 2>/dev/null || true)\" == package:* ]]; then\n  echo LAB_ALREADY_INSTALLED_NO_OVERWRITE=true; exit 53\nfi\necho STAGE=INSTALL_ISOLATED_LAB\nphone_idle || exit 54\nadb -s \"$SERIAL\" install --no-streaming \"$APP\"\npaths=\"$(adb -s \"$SERIAL\" shell pm path \"$PKG\" | tr -d '\\r')\"\n[[ \"$(printf '%s\\n' \"$paths\" | grep -c '^package:')\" == 1 ]] || exit 55\nremote=\"$(printf '%s\\n' \"$paths\" | sed -n 's/^package://p')\"\nadb -s \"$SERIAL\" pull \"$remote\" \"$WORK/installed-lab.apk\" >/dev/null\ntest \"$(shasum -a 256 \"$APP\" | awk '{print $1}')\" = \"$(shasum -a 256 \"$WORK/installed-lab.apk\" | awk '{print $1}')\"\necho LAB_APK_SHA256_MATCH=true\nadb -s \"$SERIAL\" shell run-as \"$PKG\" id >/dev/null\necho PRIVATE_ADB_ACCESS=true\ntest \"$(role)\" = \"$PROD\"\ntest \"$(adb -s \"$SERIAL\" shell pm path \"$PROD\" | tr -d '\\r')\" = \"$prod_before\"\nphone_idle\necho LAB_INSTALLED=true\necho PRODUCTION_ROLE_UNCHANGED=true\necho NO_CALLS_NO_HOST_SWITCH=true\necho \"QA_SHA=4e70f6a8860c87163164b426e27e62a7eac62709\""
+    }
+  ]
+}

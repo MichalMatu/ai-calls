@@ -1,0 +1,22 @@
+{
+  "id": "aicalls-production-gsm-023-host-qa-20261123-v2",
+  "dedupe_key": "aicalls-production-gsm-023-host-qa-20261123-v2",
+  "dedupe_revision": 1,
+  "agent_binding": "c25f88c0-4682-414c-8062-c47fa4034cb0",
+  "mode": "commands",
+  "work_branch": "main",
+  "allow_write": false,
+  "resources": [],
+  "output_policy": "summary",
+  "command_timeout": 7200,
+  "idle_timeout": 1800,
+  "task_timeout": 7800,
+  "memory_limit_mb": 6144,
+  "steps": [
+    {
+      "name": "release-023-static-contracts-and-full-app-unit-tests-compile",
+      "timeout": 7200,
+      "command": "set -euo pipefail\ntest \"$(uname -s)\" = Darwin\ntest -z \"$(git status --porcelain)\"\ngit fetch --no-tags origin fix/release-wireless-adb-20261123\ntest \"$(git rev-parse refs/remotes/origin/fix/release-wireless-adb-20261123)\" = \"4040efc858a33f50298f5fec2d2b678b159b86c7\"\nROOT=\"$(git rev-parse --show-toplevel)\"\nWORK=\"$(mktemp -d /tmp/aicalls-prod-gsm-qa-XXXXXX)\"\ntrap 'cd \"$ROOT\"; git worktree remove --force \"$WORK\" >/dev/null 2>&1 || true' EXIT\ngit worktree add --detach \"$WORK\" \"4040efc858a33f50298f5fec2d2b678b159b86c7\"\ncd \"$WORK\"\necho \"QA_SHA=4040efc858a33f50298f5fec2d2b678b159b86c7\"\nbash scripts/bin/test-profile.sh preflight\nPYTHONPATH=. python3 -m unittest scripts.tests.test_gsm_single_transport_contract scripts.tests.test_docs_check\nif [[ -z \"${ANDROID_HOME:-}\" && -d \"$HOME/Library/Android/sdk\" ]]; then export ANDROID_HOME=\"$HOME/Library/Android/sdk\"; export ANDROID_SDK_ROOT=\"$ANDROID_HOME\"; fi\n./gradlew :app:testDebugUnitTest :app:assembleRelease :app:assembleDebug\ntest -s app/build/outputs/apk/release/app-release-unsigned.apk\ntest -s app/build/outputs/apk/debug/app-debug.apk\necho \"PRODUCTION_GSM_023_HOST_QA_PASS=true\"\necho \"QA_SHA=4040efc858a33f50298f5fec2d2b678b159b86c7\""
+    }
+  ]
+}

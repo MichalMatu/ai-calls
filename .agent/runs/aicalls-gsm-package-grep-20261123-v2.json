@@ -1,0 +1,13 @@
+{
+  "event": "task_finished",
+  "task_id": "aicalls-gsm-package-grep-20261123-v2",
+  "task_digest": "0f7b9ab259308d64a655d92b563f081d1917c73c9374110586feccf63c65662d",
+  "status": "done",
+  "failure_reason": null,
+  "finished_at": "2026-11-23T17:21:59.513901+00:00",
+  "attempt_id": "795c937975a9695aa7db7ae8",
+  "daemon_version": "4.20.16",
+  "daemon_pid": 4836,
+  "updated_at": "2026-11-23T17:21:59.758806+00:00",
+  "pid": 4836
+}

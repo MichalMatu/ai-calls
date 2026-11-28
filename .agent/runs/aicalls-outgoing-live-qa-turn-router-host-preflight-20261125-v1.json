@@ -1,0 +1,13 @@
+{
+  "event": "task_finished",
+  "task_id": "aicalls-outgoing-live-qa-turn-router-host-preflight-20261125-v1",
+  "task_digest": "558942531ab8f3c4fa7fd7885222a099b7cf7707cae45d1f7a45b3a187a370ba",
+  "status": "failed",
+  "failure_reason": "command_failed",
+  "finished_at": "2026-11-25T21:55:28.151994+00:00",
+  "attempt_id": "85f4a234e65fa44d6c0624b0",
+  "daemon_version": "4.20.16",
+  "daemon_pid": 62475,
+  "updated_at": "2026-11-25T21:55:28.383700+00:00",
+  "pid": 62475
+}

@@ -1,0 +1,62 @@
+{
+  "allow_write": false,
+  "attempt_id": "15b453069b6a911218c678df",
+  "command_timeout": 1800,
+  "commands": [
+    {
+      "background_process_leak": false,
+      "captured_output_chars": 1127,
+      "command": "set -euo pipefail\ntest \"$(uname -s)\" = Darwin\ntest -z \"$(git status --porcelain)\"\ngit fetch --no-tags origin feat/outgoing-live-qa-20261125\ntest \"$(git rev-parse refs/remotes/origin/feat/outgoing-live-qa-20261125)\" = \"ca31dd78b8f9dfa970bd20ef0b6ebc6adad7a971\"\nROOT=\"$(git rev-parse --show-toplevel)\"\nWORK=\"$(mktemp -d /tmp/aicalls-outgoing-qa-XXXXXX)\"\ntrap 'cd \"$ROOT\"; git worktree remove --force \"$WORK\" >/dev/null 2>&1 || true' EXIT\ngit worktree add --detach \"$WORK\" \"ca31dd78b8f9dfa970bd20ef0b6ebc6adad7a971\"\ncd \"$WORK\"\necho \"QA_SHA=ca31dd78b8f9dfa970bd20ef0b6ebc6adad7a971\"\nbash scripts/bin/test-profile.sh preflight\npython3 -m unittest scripts.tests.test_audit_product_friction scripts.tests.test_docs_check\nbash scripts/bin/test-profile.sh focus app '*SupervisedTurnBackendTest'\nbash scripts/bin/test-profile.sh focus app '*ChatRelayBackendTest'\necho \"OUTGOING_QA_ROUTER_HOST_PASS=true\"\nREPORT=\"$(mktemp /tmp/aicalls-outgoing-readiness-XXXXXX)\"\nif bash scripts/local_agent/device_readiness.sh >\"$REPORT\" 2>&1; then\n  echo 'S22_READINESS_PASS=true'\nelse\n  echo 'S22_READINESS_PASS=false'\nfi\nrm -f \"$REPORT\"\necho \"QA_SHA=ca31dd78b8f9dfa970bd20ef0b6ebc6adad7a971\"",
+      "current_rss_mb": 9.0,
+      "elapsed_seconds": 1.931,
+      "exit_code": 1,
+      "idle_timed_out": false,
+      "memory_limit_mb": 6144,
+      "memory_limited": false,
+      "output": "From https://github.com/MichalMatu/ai-calls\n * branch              feat/outgoing-live-qa-20261125 -> FETCH_HEAD\n   988b4c85..ca31dd78  feat/outgoing-live-qa-20261125 -> origin/feat/outgoing-live-qa-20261125\nPreparing worktree (detached HEAD ca31dd78)\nHEAD is now at ca31dd78 fix(qa): align release status checks with published MVP and preserve docs budget\nQA_SHA=ca31dd78b8f9dfa970bd20ef0b6ebc6adad7a971\nANTI_FRICTION=PASS; known regressions absent and current rules preserved\nAUDIT_SCOPE=static_only; candidate model/transport timeouts need functional testing\nMODULE_BOUNDARY_GATE_PASS=true\nDOC_BUDGET_BYTES=23842/24576\nDOC_CONTRACT_WARN: documentation budget nearing limit: 23842/24576 bytes\nDOC_CONTRACT_WARN: README.md: file nearing size limit: 7324/8192 bytes\nDOC_CONTRACT_WARN: docs/PROJECT.md: file nearing size limit: 1917/2048 bytes\nDOC_CONTRACT_WARN: docs/architecture/UI_SCREEN_MAP.md: file nearing size limit: 11758/14336 bytes\nDOC_CONTRACT_WARN: docs/modules/INCOMING_OUTGOING.md: file nearing size limit: 1835/2048 bytes\nDOC_CONTRACT_ERROR: docs/operations/DEVELOPMENT.md: file budget exceeded: 2801 > 2048 bytes\n",
+      "output_policy": "stream",
+      "output_truncated": false,
+      "peak_rss_mb": 9.0,
+      "stage_index": 1,
+      "stage_name": "outgoing-qa-router-host-and-readonly-s22-readiness",
+      "stage_phase": "commands",
+      "stage_timeout": 1800,
+      "stage_total": 1,
+      "timed_out": false
+    }
+  ],
+  "daemon_version": "4.20.16",
+  "edits": {},
+  "failure_reason": "command_failed",
+  "finished_at": "2026-11-25T22:17:53.692530+00:00",
+  "git_diff": {
+    "elapsed_seconds": 0.068,
+    "exit_code": 0,
+    "output": ""
+  },
+  "git_status": {
+    "elapsed_seconds": 0.079,
+    "exit_code": 0,
+    "output": ""
+  },
+  "id": "aicalls-outgoing-live-qa-turn-router-host-preflight-20261125-v2",
+  "idle_timeout": 600,
+  "memory_limit_mb": 6144,
+  "mode": "commands",
+  "stages": [
+    {
+      "elapsed_seconds": 1.931,
+      "outcome": "failed",
+      "stage_index": 1,
+      "stage_name": "outgoing-qa-router-host-and-readonly-s22-readiness",
+      "stage_phase": "commands",
+      "stage_total": 1
+    }
+  ],
+  "started_at": "2026-11-25T22:17:50.154354+00:00",
+  "status": "failed",
+  "task_digest": "ffa7eaedc33ebe3583467d7fa3e1888e23dea353fc14b840dd544a80a0d15a58",
+  "task_timeout": 2100,
+  "verification": [],
+  "work_branch": "main"
+}

@@ -1,0 +1,13 @@
+{
+  "event": "task_finished",
+  "task_id": "aicalls-outgoing-qa-install-isolated-lab-20261126-v1",
+  "task_digest": "aab539a376e112370cb53d1194f5d32c6662a1e34b46e1757b48c3c260352ced",
+  "status": "done",
+  "failure_reason": null,
+  "finished_at": "2026-11-25T23:21:10.235635+00:00",
+  "attempt_id": "d8ad38171d20386ad12cd1a6",
+  "daemon_version": "4.20.16",
+  "daemon_pid": 57875,
+  "updated_at": "2026-11-25T23:21:10.490800+00:00",
+  "pid": 57875
+}

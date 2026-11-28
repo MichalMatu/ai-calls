@@ -1,0 +1,61 @@
+{
+  "allow_write": false,
+  "attempt_id": "d95248009ba8a79c92bc947b",
+  "command_timeout": 900,
+  "commands": [
+    {
+      "background_process_leak": false,
+      "captured_output_chars": 220,
+      "command": "set -euo pipefail\ntest \"$(uname -s)\" = Darwin\ntest -z \"$(git status --porcelain)\"\necho STAGE=USB_PREFLIGHT\nSERIAL=\"$(PYTHONPATH=scripts python3 -m aicall_tools.device.s22_adb_discovery --serial RFCT70L7E8J)\"\necho USB_EXACT_S22=true\nSTATE=\"$(adb -s \"$SERIAL\" shell dumpsys telephony.registry | sed -n 's/.*mCallState=\\([0-9]\\).*/\\1/p' | head -n1 | tr -d '\\r')\"\n[[ \"$STATE\" == 0 ]] || { echo PHONE_IDLE=false; exit 1; }\necho PHONE_IDLE=true\nROLE=\"$(adb -s \"$SERIAL\" shell cmd role get-role-holders --user 0 android.app.role.DIALER 2>/dev/null | tr -d '\\r' || true)\"\ncase \"$ROLE\" in\npl.michalmatu.aicallbridge.s8lab) echo DIALER_ROLE=LAB ;;\npl.michalmatu.aicallbridge) echo DIALER_ROLE=PRODUCTION ;;\n*) echo DIALER_ROLE=OTHER_OR_UNKNOWN ;;\nesac\nfor pkg in pl.michalmatu.aicallbridge pl.michalmatu.aicallbridge.s8lab; do\n  if [[ \"$pkg\" == *.s8lab ]]; then label=LAB; else label=PRODUCTION; fi\n  if [[ \"$(adb -s \"$SERIAL\" shell pm path \"$pkg\" 2>/dev/null || true)\" == package:* ]]; then\n    echo \"${label}_INSTALLED=true\"\n    result=\"$(adb -s \"$SERIAL\" shell content call --uri \"content://$pkg.gsmbinder\" --method status 2>/dev/null || true)\"\n    if [[ \"$result\" == *host_registered=true* ]]; then\n      echo \"${label}_HOST_READY=true\"\n    else\n      echo \"${label}_HOST_READY=false\"\n    fi\n  else\n    echo \"${label}_INSTALLED=false\"\n  fi\ndone\nif [[ \"$ROLE\" == pl.michalmatu.aicallbridge.s8lab ]]; then\n  echo STAGE=LAB_HOST_RESTORE\n  ANDROID_SERIAL=\"$SERIAL\" bash scripts/bin/start-s8-gsm-shell.sh --start\n  echo LAB_HOST_RESTORED=true\nelse\n  echo LAB_HOST_RESTORE_SKIPPED_ROLE_NOT_LAB=true\nfi\necho NO_CALLS_NO_INSTALL=true",
+      "current_rss_mb": 11.02,
+      "elapsed_seconds": 2.493,
+      "exit_code": 0,
+      "idle_timed_out": false,
+      "memory_limit_mb": 2048,
+      "memory_limited": false,
+      "output": "STAGE=USB_PREFLIGHT\nUSB_EXACT_S22=true\nPHONE_IDLE=true\nDIALER_ROLE=PRODUCTION\nPRODUCTION_INSTALLED=true\nPRODUCTION_HOST_READY=false\nLAB_INSTALLED=false\nLAB_HOST_RESTORE_SKIPPED_ROLE_NOT_LAB=true\nNO_CALLS_NO_INSTALL=true\n",
+      "output_policy": "stream",
+      "output_truncated": false,
+      "peak_rss_mb": 11.02,
+      "stage_index": 1,
+      "stage_name": "usb-exact-host-status-and-conditional-lab-restore",
+      "stage_phase": "commands",
+      "stage_timeout": 900,
+      "stage_total": 1,
+      "timed_out": false
+    }
+  ],
+  "daemon_version": "4.20.16",
+  "edits": {},
+  "finished_at": "2026-11-25T23:14:25.074957+00:00",
+  "git_diff": {
+    "elapsed_seconds": 0.068,
+    "exit_code": 0,
+    "output": ""
+  },
+  "git_status": {
+    "elapsed_seconds": 0.168,
+    "exit_code": 0,
+    "output": ""
+  },
+  "id": "aicalls-outgoing-qa-gsm-host-diagnosis-20261126-v2",
+  "idle_timeout": 300,
+  "memory_limit_mb": 2048,
+  "mode": "commands",
+  "stages": [
+    {
+      "elapsed_seconds": 2.493,
+      "outcome": "passed",
+      "stage_index": 1,
+      "stage_name": "usb-exact-host-status-and-conditional-lab-restore",
+      "stage_phase": "commands",
+      "stage_total": 1
+    }
+  ],
+  "started_at": "2026-11-25T23:14:20.982827+00:00",
+  "status": "done",
+  "task_digest": "697a97135f4cf491b4f673ac6bb5a49c77e62b10d6a41a10be36f94aebf19b3d",
+  "task_timeout": 1500,
+  "verification": [],
+  "work_branch": "main"
+}

@@ -1,0 +1,13 @@
+{
+  "event": "task_finished",
+  "task_id": "aicalls-cleanup-old-working-branches-20261123-v2",
+  "task_digest": "318a5e97031519a1d133a9ce05277b8f4602da0ec3183de7d57a4f8081090927",
+  "status": "done",
+  "failure_reason": null,
+  "finished_at": "2026-11-23T17:30:11.599055+00:00",
+  "attempt_id": "f62e85468e76dc4147afb795",
+  "daemon_version": "4.20.16",
+  "daemon_pid": 14479,
+  "updated_at": "2026-11-23T17:30:11.874953+00:00",
+  "pid": 14479
+}

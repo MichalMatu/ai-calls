@@ -1,0 +1,13 @@
+{
+  "event": "task_finished",
+  "task_id": "aicalls-verify-remove-lab-user0-and-qa-status-20261126-v1",
+  "task_digest": "7c3d99023517e55edd69ba3c2a568074a48189edc6e5cf67bc43d267f06d46d0",
+  "status": "done",
+  "failure_reason": null,
+  "finished_at": "2026-11-25T23:41:51.611464+00:00",
+  "attempt_id": "5b96c140eb1f75ae5c853afd",
+  "daemon_version": "4.20.16",
+  "daemon_pid": 82961,
+  "updated_at": "2026-11-25T23:41:51.847450+00:00",
+  "pid": 82961
+}

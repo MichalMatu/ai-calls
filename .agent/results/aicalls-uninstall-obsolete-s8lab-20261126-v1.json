@@ -1,0 +1,61 @@
+{
+  "allow_write": true,
+  "attempt_id": "732c2c47cd4fe00e1f830302",
+  "command_timeout": 240,
+  "commands": [
+    {
+      "background_process_leak": false,
+      "captured_output_chars": 620,
+      "command": "set -euo pipefail\ntest \"$(uname -s)\" = Darwin\nSERIAL=\"$(PYTHONPATH=scripts python3 -m aicall_tools.device.s22_adb_discovery --serial RFCT70L7E8J)\"\nadbq() { adb -s \"$SERIAL\" \"$@\"; }\nMAIN=pl.michalmatu.aicallbridge\nLAB=pl.michalmatu.aicallbridge.s8lab\ncheck_safe() {\n  local states mode role host\n  states=\"$(adbq shell dumpsys telephony.registry | sed -n 's/.*mCallState=\\([0-9][0-9]*\\).*/\\1/p' | tr -d '\\r')\"\n  mode=\"$(adbq shell dumpsys audio | sed -n 's/.*Actual mode = \\(MODE_[A-Z_]*\\).*/\\1/p' | head -n1 | tr -d '\\r')\"\n  role=\"$(adbq shell cmd role get-role-holders --user 0 android.app.role.DIALER | tr -d '\\r')\"\n  host=\"$(adbq shell content call --uri content://pl.michalmatu.aicallbridge.gsmbinder --method status)\"\n  [[ -n \"$states\" && -z \"$(printf '%s\\n' \"$states\" | grep -v '^0$' || true)\" && \"$mode\" == MODE_NORMAL && \"$role\" == \"$MAIN\" && \"$host\" == *host_registered=true* ]]\n}\ncheck_safe || { echo HOLD_PHONE_OR_MAIN_HOST_NOT_READY; exit 50; }\nbefore=\"$(adbq shell pm path \"$MAIN\" | tr -d '\\r')\"\n[[ \"$before\" == package:* ]]\nif adbq shell pm list packages -u | tr -d '\\r' | grep -Fxq \"package:$LAB\"; then\n  adbq uninstall \"$LAB\"\nfi\nif adbq shell pm list packages -u | tr -d '\\r' | grep -Fxq \"package:$LAB\"; then\n  echo LAB_UNINSTALL_NOT_CONFIRMED; exit 51\nfi\ntest \"$(adbq shell pm path \"$MAIN\" | tr -d '\\r')\" = \"$before\"\ncheck_safe || { echo MAIN_POSTCHECK_HOLD; exit 52; }\necho LAB_UNINSTALLED=true\necho MAIN_APP_AND_GSM_HOST_UNCHANGED=true\necho NO_CALLS=true",
+      "current_rss_mb": 15.97,
+      "elapsed_seconds": 3.441,
+      "exit_code": 0,
+      "idle_timed_out": false,
+      "memory_limit_mb": 1024,
+      "memory_limited": false,
+      "output": "Error: java.lang.SecurityException: Shell does not have permission to access user 151\n com.android.server.am.ActivityManagerService.handleIncomingUser:8 android.app.ActivityManager.handleIncomingUser:5755 com.android.server.pm.PackageManagerShellCommand.translateUserId:24 \nError: java.lang.SecurityException: Shell does not have permission to access user 151\n com.android.server.am.ActivityManagerService.handleIncomingUser:8 android.app.ActivityManager.handleIncomingUser:5755 com.android.server.pm.PackageManagerShellCommand.translateUserId:24 \nLAB_UNINSTALLED=true\nMAIN_APP_AND_GSM_HOST_UNCHANGED=true\nNO_CALLS=true\n",
+      "output_policy": "stream",
+      "output_truncated": false,
+      "peak_rss_mb": 15.97,
+      "stage_index": 1,
+      "stage_name": "uninstall-obsolete-s8lab-only-preserve-main-app",
+      "stage_phase": "commands",
+      "stage_timeout": 240,
+      "stage_total": 1,
+      "timed_out": false
+    }
+  ],
+  "daemon_version": "4.20.16",
+  "edits": {},
+  "finished_at": "2026-11-25T23:40:38.618988+00:00",
+  "git_diff": {
+    "elapsed_seconds": 0.068,
+    "exit_code": 0,
+    "output": ""
+  },
+  "git_status": {
+    "elapsed_seconds": 0.079,
+    "exit_code": 0,
+    "output": ""
+  },
+  "id": "aicalls-uninstall-obsolete-s8lab-20261126-v1",
+  "idle_timeout": 120,
+  "memory_limit_mb": 1024,
+  "mode": "commands",
+  "stages": [
+    {
+      "elapsed_seconds": 3.441,
+      "outcome": "passed",
+      "stage_index": 1,
+      "stage_name": "uninstall-obsolete-s8lab-only-preserve-main-app",
+      "stage_phase": "commands",
+      "stage_total": 1
+    }
+  ],
+  "started_at": "2026-11-25T23:40:33.669303+00:00",
+  "status": "done",
+  "task_digest": "84e251c363ca35f5b3af5e62e88328b99ce0b7e79727e85eddf7a56ee438d4d2",
+  "task_timeout": 480,
+  "verification": [],
+  "work_branch": "main"
+}

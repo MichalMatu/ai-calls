@@ -1,0 +1,13 @@
+{
+  "event": "task_finished",
+  "task_id": "aicalls-enable-existing-live-qa-via-adb-20261126-v1",
+  "task_digest": "44b2d89a0e9f3530afd04cd53844c2e0f99c586dc8c14782d7fe778073200e9e",
+  "status": "failed",
+  "failure_reason": "command_failed",
+  "finished_at": "2026-11-25T23:44:03.793805+00:00",
+  "attempt_id": "f1445d33da92d22e74da76bb",
+  "daemon_version": "4.20.16",
+  "daemon_pid": 85738,
+  "updated_at": "2026-11-25T23:44:04.098227+00:00",
+  "pid": 85738
+}

@@ -1,0 +1,13 @@
+{
+  "event": "task_finished",
+  "task_id": "aicalls-outgoing-live-qa-localization-device-20261126-v4",
+  "task_digest": "fd3431f4e1f4bbcda77392c4e2817ca7dca31ae22dc671347f311d01ac5a7069",
+  "status": "failed",
+  "failure_reason": "command_failed",
+  "finished_at": "2026-11-25T23:11:01.231705+00:00",
+  "attempt_id": "07bdc10c3f7b779469627b7d",
+  "daemon_version": "4.20.16",
+  "daemon_pid": 41599,
+  "updated_at": "2026-11-25T23:11:01.553069+00:00",
+  "pid": 41599
+}

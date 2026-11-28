@@ -1,0 +1,24 @@
+{
+  "id": "aicalls-cleanup-old-working-branches-20261123-v2",
+  "dedupe_key": "aicalls-cleanup-old-working-branches-20261123-v2",
+  "dedupe_revision": 1,
+  "agent_binding": "c25f88c0-4682-414c-8062-c47fa4034cb0",
+  "mode": "commands",
+  "work_branch": "main",
+  "allow_write": true,
+  "resources": [
+    "repo:ai-calls-branch-delete"
+  ],
+  "output_policy": "summary",
+  "command_timeout": 900,
+  "idle_timeout": 300,
+  "task_timeout": 1200,
+  "memory_limit_mb": 1024,
+  "steps": [
+    {
+      "name": "delete-stale-github-branches-keep-main-agent-control-and-active-fix",
+      "timeout": 900,
+      "command": "set -euo pipefail\ntest \"$(uname -s)\" = Darwin\ngh auth status >/dev/null 2>&1\nEXPECTED_MAIN=4f5c261301b865ea4af1bbb8d274c7dbd469d707\nACTUAL_MAIN=\"$(gh api repos/MichalMatu/ai-calls/branches/main --jq '.commit.sha')\"\ntest \"$ACTUAL_MAIN\" = \"$EXPECTED_MAIN\" || { echo \"MAIN_MOVED_HOLD=true\"; exit 40; }\nDIR=\"$(mktemp -d /tmp/aicalls-prune-branches-XXXXXX)\"\ntrap 'rm -rf \"$DIR\"' EXIT\ngh api --paginate repos/MichalMatu/ai-calls/branches --jq '.[].name' | sort -u > \"$DIR/branches\"\necho \"BRANCH_COUNT_BEFORE=$(wc -l < \"$DIR/branches\" | tr -d ' ')\"\nfor x in main agent-control fix/release-wireless-adb-20261123; do grep -Fxq \"$x\" \"$DIR/branches\"; done\nOPEN=\"$(gh pr list -R MichalMatu/ai-calls --state open --json number --jq 'length')\"\ntest \"$OPEN\" = 0 || { echo \"OPEN_PR_STOP=true\"; exit 41; }\nCOUNT=0\nwhile IFS= read -r b; do\n case \"$b\" in main|agent-control|fix/release-wireless-adb-20261123) continue;; esac\n echo \"DELETE_BRANCH=$b\"\n gh api -X DELETE \"repos/MichalMatu/ai-calls/git/refs/heads/$b\" >/dev/null\n COUNT=$((COUNT+1))\ndone < \"$DIR/branches\"\necho \"OLD_BRANCHES_DELETED=$COUNT\"\ngh api --paginate repos/MichalMatu/ai-calls/branches --jq '.[].name' | sort -u > \"$DIR/after\"\necho \"BRANCH_COUNT_AFTER=$(wc -l < \"$DIR/after\" | tr -d ' ')\"\ntest \"$(wc -l < \"$DIR/after\" | tr -d ' ')\" -eq 3\nfor x in main agent-control fix/release-wireless-adb-20261123; do grep -Fxq \"$x\" \"$DIR/after\"; done\necho \"OLD_BRANCH_CLEANUP_PASS=true\""
+    }
+  ]
+}

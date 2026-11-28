@@ -1,0 +1,22 @@
+{
+  "id": "aicalls-gsm-package-grep-20261123-v2",
+  "dedupe_key": "aicalls-gsm-package-grep-20261123-v2",
+  "dedupe_revision": 1,
+  "agent_binding": "c25f88c0-4682-414c-8062-c47fa4034cb0",
+  "mode": "commands",
+  "work_branch": "main",
+  "allow_write": false,
+  "resources": [],
+  "output_policy": "summary",
+  "command_timeout": 600,
+  "idle_timeout": 300,
+  "task_timeout": 900,
+  "memory_limit_mb": 1024,
+  "steps": [
+    {
+      "name": "audit-release-and-debug-package-identity-references",
+      "timeout": 600,
+      "command": "set -euo pipefail\ntest \"$(uname -s)\" = Darwin\ntest -z \"$(git status --porcelain)\"\ngit fetch --no-tags origin fix/release-wireless-adb-20261123\nROOT=\"$(git rev-parse --show-toplevel)\"\nTMP=\"$(mktemp -d /tmp/aicalls-gsm-grep-XXXXXX)\"\ntrap 'cd \"$ROOT\"; git worktree remove --force \"$TMP\" >/dev/null 2>&1 || true' EXIT\ngit worktree add --detach \"$TMP\" origin/fix/release-wireless-adb-20261123 >/dev/null\ncd \"$TMP\"\necho \"QA_SHA=$(git rev-parse HEAD)\"\ngrep -RnE 'GsmShellMediaProtocol\\.S8_PACKAGE|LocalAdbGsmPolicy\\.(START|STATUS)|\\.gsmbinder|S8_PACKAGE|CallMediaBackendMode' app/src/main scripts 2>/dev/null | head -180 || true\necho GSM_GREP_PASS=true"
+    }
+  ]
+}

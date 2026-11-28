@@ -1,0 +1,13 @@
+{
+  "event": "task_finished",
+  "task_id": "aicalls-mvp-022-android-user0-probe-20261123-v1",
+  "task_digest": "901664efef4476971d42ffb333e0c6f1da444cf3a362b72d704a304da5f96305",
+  "status": "done",
+  "failure_reason": null,
+  "finished_at": "2026-11-23T16:57:15.006402+00:00",
+  "attempt_id": "1bbe871764bb2c3b4b72cb42",
+  "daemon_version": "4.20.16",
+  "daemon_pid": 75102,
+  "updated_at": "2026-11-23T16:57:15.282505+00:00",
+  "pid": 75102
+}

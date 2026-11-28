@@ -1,0 +1,24 @@
+{
+  "id": "aicalls-physical-qa-transport-invalid-draft-probe-20261126-v1",
+  "dedupe_key": "aicalls-physical-qa-transport-invalid-draft-probe-20261126-v1",
+  "dedupe_revision": 1,
+  "agent_binding": "c25f88c0-4682-414c-8062-c47fa4034cb0",
+  "mode": "commands",
+  "work_branch": "main",
+  "allow_write": true,
+  "resources": [
+    "adb:rfct70l7e8j"
+  ],
+  "output_policy": "summary",
+  "command_timeout": 180,
+  "idle_timeout": 90,
+  "task_timeout": 400,
+  "memory_limit_mb": 1024,
+  "steps": [
+    {
+      "name": "physical-adb-gsm-readiness-and-non-dialable-payload-rejection",
+      "timeout": 180,
+      "command": "set -euo pipefail\ntest \"$(uname -s)\" = Darwin\nSERIAL=\"$(PYTHONPATH=scripts python3 -m aicall_tools.device.s22_adb_discovery --serial RFCT70L7E8J)\"\nexport QA_USB_SERIAL=\"$SERIAL\"\npython3 - <<'PY'\nimport os,re,subprocess,json\nserial=os.environ[\"QA_USB_SERIAL\"]\npkg=\"pl.michalmatu.aicallbridge\"\nuri=\"content://\"+pkg+\".gsmbinder\"\ndef adb(*args,data=None):\n    return subprocess.run([\"adb\",\"-s\",serial,*args],input=data,capture_output=True,text=True,timeout=25)\ndef read(*args):\n    p=adb(*args)\n    if p.returncode: raise RuntimeError(\"ADB_FAILED\")\n    return p.stdout\ndef safe():\n    states=re.findall(r\"mCallState=(\\d+)\",read(\"shell\",\"dumpsys\",\"telephony.registry\"))\n    assert states and all(s==\"0\" for s in states),\"PHONE_NOT_IDLE\"\n    assert \"Actual mode = MODE_NORMAL\" in read(\"shell\",\"dumpsys\",\"audio\"),\"AUDIO_NOT_IDLE\"\n    assert read(\"shell\",\"cmd\",\"role\",\"get-role-holders\",\"--user\",\"0\",\"android.app.role.DIALER\").strip()==pkg,\"DIALER_CHANGED\"\n    assert \"host_registered=true\" in read(\"shell\",\"content\",\"call\",\"--uri\",uri,\"--method\",\"status\"),\"HOST_NOT_READY\"\nsafe()\npackages=read(\"shell\",\"pm\",\"list\",\"packages\",\"--user\",\"0\").splitlines()\nassert \"package:\"+pkg in packages and \"package:\"+pkg+\".s8lab\" not in packages\nprint(\"ONE_MAIN_APP=true\")\nprint(\"PHONE_IDLE=true\")\nprint(\"GSM_HOST_READY=true\")\na=read(\"shell\",\"content\",\"call\",\"--uri\",uri,\"--method\",\"qa_status\")\nassert \"armed=true\" in a or \"armed=false\" in a\nprint(\"QA_ARMED=\"+str(\"armed=true\" in a).lower())\nif \"armed=true\" in a:\n    # Intentionally invalid payload: no number or goal, cannot create a callable task.\n    p=adb(\"shell\",\"-T\",\"content\",\"write\",\"--uri\",uri+\"/qa/draft\",data=json.dumps({\"probe\":\"non-dialable-transport-test\"}))\n    if p.returncode or \"Error\" in p.stderr or \"Exception\" in p.stdout+p.stderr:\n        print(\"ADB_UPLOAD_ACCEPTED=false\")\n        print(\"NO_CALLS=true\")\n        raise SystemExit(1)\n    print(\"ADB_UPLOAD_ACCEPTED=true\")\n    ack=read(\"shell\",\"content\",\"call\",\"--uri\",uri,\"--method\",\"qa_commit\",\"--arg\",\"draft\")\n    assert \"committed=false\" in ack,\"INVALID_PAYLOAD_NOT_REJECTED\"\n    print(\"INVALID_DRAFT_REJECTED=true\")\n    p=adb(\"exec-out\",\"content\",\"read\",\"--uri\",uri+\"/qa/state\")\n    assert \"qa_no_current_payload\" in p.stdout+p.stderr or p.returncode!=0,\"UNEXPECTED_ACTIVE_PAYLOAD\"\n    print(\"NO_ACTIVE_CALL_PAYLOAD=true\")\nelse:\n    print(\"TRANSPORT_PROBE_NOT_RUN_LEASE_EXPIRED=true\")\nsafe()\nprint(\"NO_CALLS=true\")\nPY"
+    }
+  ]
+}

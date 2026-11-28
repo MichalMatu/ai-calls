@@ -1,0 +1,14 @@
+{
+  "id": "ai-calls-sprint-preflight-wake-20261101-v1",
+  "action": "status",
+  "status": "completed",
+  "daemon_version": "4.20.16",
+  "updated_at": "2026-11-23T02:48:58.451241+00:00",
+  "repository_id": "ai-calls",
+  "repository": "MichalMatu/ai-calls",
+  "control_branch": "agent-control",
+  "default_branch": "main",
+  "agent_binding": "c25f88c0-4682-414c-8062-c47fa4034cb0",
+  "work_mode": "managed",
+  "result": "status_published"
+}

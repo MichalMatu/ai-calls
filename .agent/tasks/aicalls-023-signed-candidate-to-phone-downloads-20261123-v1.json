@@ -1,0 +1,24 @@
+{
+  "id": "aicalls-023-signed-candidate-to-phone-downloads-20261123-v1",
+  "dedupe_key": "aicalls-023-signed-candidate-to-phone-downloads-20261123-v1",
+  "dedupe_revision": 1,
+  "agent_binding": "c25f88c0-4682-414c-8062-c47fa4034cb0",
+  "mode": "commands",
+  "work_branch": "main",
+  "allow_write": true,
+  "resources": [
+    "adb:rfct70l7e8j"
+  ],
+  "output_policy": "summary",
+  "command_timeout": 7200,
+  "idle_timeout": 1800,
+  "task_timeout": 7800,
+  "memory_limit_mb": 6144,
+  "steps": [
+    {
+      "name": "sign-verified-023-and-stage-clean-install-apk-without-installing-or-pairing",
+      "timeout": 7200,
+      "command": "set -euo pipefail\ntest \"$(uname -s)\" = Darwin\ntest -z \"$(git status --porcelain)\"\ngit fetch --no-tags origin fix/release-wireless-adb-20261123\ntest \"$(git rev-parse refs/remotes/origin/fix/release-wireless-adb-20261123)\" = \"4040efc858a33f50298f5fec2d2b678b159b86c7\"\nROOT=\"$(git rev-parse --show-toplevel)\"\nWORK=\"$(mktemp -d /tmp/aicalls-023-first-run-src-XXXXXX)\"\nOUT=\"$(mktemp -d /tmp/aicalls-023-first-run-apk-XXXXXX)\"\ncleanup() { cd \"$ROOT\"; git worktree remove --force \"$WORK\" >/dev/null 2>&1 || true; rm -rf \"$OUT\"; }\ntrap cleanup EXIT\ngit worktree add --detach \"$WORK\" \"4040efc858a33f50298f5fec2d2b678b159b86c7\"\ncd \"$WORK\"\ntest \"$(git rev-parse HEAD)\" = \"4040efc858a33f50298f5fec2d2b678b159b86c7\"\ngrep -q 'versionName = \"0.2.3\"' app/build.gradle.kts\ngrep -q 'versionCode = 5' app/build.gradle.kts\necho \"SOURCE_SHA=4040efc858a33f50298f5fec2d2b678b159b86c7\"\necho \"STAGE=BUILD_RELEASE_CANDIDATE_NOT_PUBLIC\"\nif [[ -z \"${ANDROID_HOME:-}\" && -d \"$HOME/Library/Android/sdk\" ]]; then export ANDROID_HOME=\"$HOME/Library/Android/sdk\"; export ANDROID_SDK_ROOT=\"$ANDROID_HOME\"; fi\n./gradlew :app:assembleRelease\nUNSIGNED=app/build/outputs/apk/release/app-release-unsigned.apk\ntest -s \"$UNSIGNED\"\nSIGNER=\"$(find \"$HOME/Library/Android/sdk/build-tools\" -name apksigner -type f 2>/dev/null | sort -V | tail -1)\"\nZIPALIGN=\"$(dirname \"$SIGNER\")/zipalign\"\ntest -x \"$SIGNER\" && test -x \"$ZIPALIGN\"\n\"$ZIPALIGN\" -f -p 4 \"$UNSIGNED\" \"$OUT/aligned.apk\"\nSIGNED=\"$OUT/AI-Calls-0.2.3-test.apk\"\n\"$SIGNER\" sign --ks \"$HOME/.android/debug.keystore\" --ks-key-alias androiddebugkey --ks-pass pass:android --key-pass pass:android --out \"$SIGNED\" \"$OUT/aligned.apk\"\n\"$SIGNER\" verify \"$SIGNED\"\nCERT=\"$(\"$SIGNER\" verify --print-certs \"$SIGNED\" 2>/dev/null | sed -n 's/.*Signer #1 certificate SHA-256 digest: //p' | head -1)\"\ntest \"$CERT\" = fb07493cf97b0a84ec410f7f72f12938b7f9d47151546e15c049c49c27807b11\nLOCAL=\"$HOME/Downloads/AI-Calls-0.2.3-test.apk\"\ntest ! -e \"$LOCAL\" || { echo \"MAC_CANDIDATE_ALREADY_EXISTS_REFUSED=true\"; exit 40; }\ncp \"$SIGNED\" \"$LOCAL\"\ntest \"$(shasum -a 256 \"$LOCAL\" | awk '{print $1}')\" = \"$(shasum -a 256 \"$SIGNED\" | awk '{print $1}')\"\nprintf 'APK_SHA256=%s\\n' \"$(shasum -a 256 \"$LOCAL\" | awk '{print $1}')\"\nprintf 'APK_BYTES=%s\\n' \"$(stat -f%z \"$LOCAL\")\"\necho \"APK_MAC_PATH=$LOCAL\"\necho \"MAC_CANDIDATE_READY=true\"\necho \"STAGE=TRANSFER_TO_PHONE_DOWNLOADS_IF_ADB_CONNECTED\"\nif SERIAL=\"$(PYTHONPATH=scripts python3 -m aicall_tools.device.s22_adb_discovery 2>/dev/null)\"; then\n  test \"$(adb -s \"$SERIAL\" shell getprop ro.product.model | tr -d '\\r')\" = SM-S906B\n  test \"$(adb -s \"$SERIAL\" shell getprop ro.build.version.release | tr -d '\\r')\" = 16\n  test \"$(adb -s \"$SERIAL\" shell am get-current-user | tr -d '\\r')\" = 0\n  PACKAGE_PATH=\"$(adb -s \"$SERIAL\" shell pm path --user 0 pl.michalmatu.aicallbridge 2>/dev/null || true)\"\n  if printf '%s\\n' \"$PACKAGE_PATH\" | grep -q '^package:'; then\n    echo \"PRODUCTION_APP_ALREADY_PRESENT_STOP_PHONE_TRANSFER=true\"\n  else\n    PHONE=/sdcard/Download/AI-Calls-0.2.3-test.apk\n    if adb -s \"$SERIAL\" shell test -e \"$PHONE\"; then\n      echo \"PHONE_CANDIDATE_NAME_COLLISION_HOLD=true\"\n    else\n      adb -s \"$SERIAL\" push \"$LOCAL\" \"$PHONE\"\n      REMOTE_SHA=\"$(adb -s \"$SERIAL\" shell sha256sum \"$PHONE\" | awk '{print $1}')\"\n      LOCAL_SHA=\"$(shasum -a 256 \"$LOCAL\" | awk '{print $1}')\"\n      test \"$REMOTE_SHA\" = \"$LOCAL_SHA\"\n      echo \"PHONE_DOWNLOAD_CANDIDATE_READY=true\"\n      echo \"PHONE_PATH=$PHONE\"\n    fi\n  fi\nelse\n  echo \"PHONE_ADB_UNAVAILABLE_MANUAL_TRANSFER_NEEDED=true\"\nfi\necho \"INSTALL_NOT_PERFORMED=true\"\necho \"WIFI_PAIRING_NOT_PERFORMED=true\"\necho \"RELEASE_NOT_PUBLISHED=true\"\necho \"CANDIDATE_STAGING_DONE=true\""
+    }
+  ]
+}

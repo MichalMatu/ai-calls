@@ -1,0 +1,22 @@
+{
+  "id": "aicalls-release-gsm-package-reference-audit-20261123-v1",
+  "dedupe_key": "aicalls-release-gsm-package-reference-audit-20261123-v1",
+  "dedupe_revision": 1,
+  "agent_binding": "c25f88c0-4682-414c-8062-c47fa4034cb0",
+  "mode": "commands",
+  "work_branch": "main",
+  "allow_write": false,
+  "resources": [],
+  "output_policy": "summary",
+  "command_timeout": 600,
+  "idle_timeout": 300,
+  "task_timeout": 900,
+  "memory_limit_mb": 1024,
+  "steps": [
+    {
+      "name": "list-release-gsm-package-gates",
+      "timeout": 600,
+      "command": "set -euo pipefail\ntest \"$(uname -s)\" = Darwin\ntest -z \"$(git status --porcelain)\"\ngit fetch --no-tags origin main\nROOT=\"$(git rev-parse --show-toplevel)\"\nWORK=\"$(mktemp -d /tmp/aicalls-release-gsm-audit-XXXXXX)\"\ntrap 'cd \"$ROOT\"; git worktree remove --force \"$WORK\" >/dev/null 2>&1 || true' EXIT\ngit worktree add --detach \"$WORK\" origin/main >/dev/null\ncd \"$WORK\"\necho \"SHA=$(git rev-parse HEAD)\"\nrg -n 'GsmShellMediaProtocol\\.S8_PACKAGE|\\.S8_PACKAGE|\\.gsmbinder|CallMediaBackendMode|LocalAdbGsmPolicy\\.(START|STATUS)' app/src/main scripts | head -n 190\necho \"AUDIT_DONE=true\""
+    }
+  ]
+}

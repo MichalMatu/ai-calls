@@ -1,0 +1,24 @@
+{
+  "id": "aicalls-disable-obsolete-lab-icon-20261126-v1",
+  "dedupe_key": "aicalls-disable-obsolete-lab-icon-20261126-v1",
+  "dedupe_revision": 1,
+  "agent_binding": "c25f88c0-4682-414c-8062-c47fa4034cb0",
+  "mode": "commands",
+  "work_branch": "main",
+  "allow_write": true,
+  "resources": [
+    "adb:rfct70l7e8j"
+  ],
+  "output_policy": "summary",
+  "command_timeout": 180,
+  "idle_timeout": 90,
+  "task_timeout": 300,
+  "memory_limit_mb": 1024,
+  "steps": [
+    {
+      "name": "disable-obsolete-s8lab-only-after-main-idle-host-check",
+      "timeout": 180,
+      "command": "set -euo pipefail\ntest \"$(uname -s)\" = Darwin\nSERIAL=\"$(PYTHONPATH=scripts python3 -m aicall_tools.device.s22_adb_discovery --serial RFCT70L7E8J)\"\nadbq() { adb -s \"$SERIAL\" \"$@\"; }\nMAIN=pl.michalmatu.aicallbridge\nLAB=pl.michalmatu.aicallbridge.s8lab\ncheck_safe() {\n  local states mode role host\n  states=\"$(adbq shell dumpsys telephony.registry | sed -n 's/.*mCallState=\\([0-9][0-9]*\\).*/\\1/p' | tr -d '\\r')\"\n  mode=\"$(adbq shell dumpsys audio | sed -n 's/.*Actual mode = \\(MODE_[A-Z_]*\\).*/\\1/p' | head -n1 | tr -d '\\r')\"\n  role=\"$(adbq shell cmd role get-role-holders --user 0 android.app.role.DIALER | tr -d '\\r')\"\n  host=\"$(adbq shell content call --uri content://pl.michalmatu.aicallbridge.gsmbinder --method status)\"\n  [[ -n \"$states\" && -z \"$(printf '%s\\n' \"$states\" | grep -v '^0$' || true)\" && \"$mode\" == MODE_NORMAL && \"$role\" == \"$MAIN\" && \"$host\" == *host_registered=true* ]]\n}\ncheck_safe || { echo HOLD_PHONE_OR_MAIN_HOST_NOT_READY; exit 50; }\nif adbq shell pm path --user 0 \"$LAB\" | grep -q '^package:'; then\n  adbq shell pm disable-user --user 0 \"$LAB\"\n  adbq shell pm list packages -d --user 0 | tr -d '\\r' | grep -Fx \"package:$LAB\"\n  echo LAB_DISABLED_DATA_PRESERVED=true\nelse\n  echo LAB_ALREADY_ABSENT=true\nfi\ncheck_safe || { echo POSTCHECK_HOLD; exit 51; }\necho MAIN_APP_AND_GSM_HOST_UNCHANGED=true\necho NO_UNINSTALL_NO_CALLS=true"
+    }
+  ]
+}

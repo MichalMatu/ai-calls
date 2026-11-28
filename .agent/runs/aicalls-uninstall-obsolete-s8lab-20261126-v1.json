@@ -1,0 +1,13 @@
+{
+  "event": "task_finished",
+  "task_id": "aicalls-uninstall-obsolete-s8lab-20261126-v1",
+  "task_digest": "84e251c363ca35f5b3af5e62e88328b99ce0b7e79727e85eddf7a56ee438d4d2",
+  "status": "done",
+  "failure_reason": null,
+  "finished_at": "2026-11-25T23:40:38.618988+00:00",
+  "attempt_id": "732c2c47cd4fe00e1f830302",
+  "daemon_version": "4.20.16",
+  "daemon_pid": 81338,
+  "updated_at": "2026-11-25T23:40:38.844618+00:00",
+  "pid": 81338
+}

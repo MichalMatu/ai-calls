@@ -1,0 +1,22 @@
+{
+  "id": "aicalls-outgoing-live-qa-integration-20261125-v3",
+  "dedupe_key": "aicalls-outgoing-live-qa-integration-20261125-v3",
+  "dedupe_revision": 1,
+  "agent_binding": "c25f88c0-4682-414c-8062-c47fa4034cb0",
+  "mode": "commands",
+  "work_branch": "main",
+  "allow_write": false,
+  "resources": [],
+  "output_policy": "summary",
+  "command_timeout": 3600,
+  "idle_timeout": 900,
+  "task_timeout": 3900,
+  "memory_limit_mb": 6144,
+  "steps": [
+    {
+      "name": "outgoing-qa-integration-full-host-and-readonly-device",
+      "timeout": 3600,
+      "command": "set -euo pipefail\ntest \"$(uname -s)\" = Darwin\ntest -z \"$(git status --porcelain)\"\ngit fetch --no-tags origin feat/outgoing-live-qa-20261125\ntest \"$(git rev-parse refs/remotes/origin/feat/outgoing-live-qa-20261125)\" = \"68664b6ff6174f504d85388de2b92b6237e34fb0\"\nROOT=\"$(git rev-parse --show-toplevel)\"\nWORK=\"$(mktemp -d /tmp/aicalls-outgoing-qa-XXXXXX)\"\ntrap 'cd \"$ROOT\"; git worktree remove --force \"$WORK\" >/dev/null 2>&1 || true' EXIT\ngit worktree add --detach \"$WORK\" \"68664b6ff6174f504d85388de2b92b6237e34fb0\"\ncd \"$WORK\"\necho \"QA_SHA=68664b6ff6174f504d85388de2b92b6237e34fb0\"\nbash scripts/bin/test-profile.sh preflight\nPYTHONPATH=scripts python3 -m unittest scripts.tests.test_audit_product_friction scripts.tests.test_docs_check scripts.tests.calls.test_outgoing_qa\nbash scripts/bin/test-profile.sh focus app '*SupervisedTurnBackendTest'\nbash scripts/bin/test-profile.sh focus app '*ChatRelayBackendTest'\nbash scripts/bin/test-profile.sh focus app '*OutgoingQaSessionTest'\nbash scripts/bin/test-profile.sh full\nbash scripts/bin/test-profile.sh device-build\necho \"OUTGOING_QA_HOST_PASS=true\"\nREPORT=\"$(mktemp /tmp/aicalls-outgoing-readiness-XXXXXX)\"\nif bash scripts/local_agent/device_readiness.sh >\"$REPORT\" 2>&1; then\n  echo 'S22_READINESS_PASS=true'\nelse\n  echo 'S22_READINESS_PASS=false'\nfi\nrm -f \"$REPORT\"\necho \"QA_SHA=68664b6ff6174f504d85388de2b92b6237e34fb0\""
+    }
+  ]
+}

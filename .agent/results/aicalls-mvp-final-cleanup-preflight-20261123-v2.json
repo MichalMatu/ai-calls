@@ -1,0 +1,61 @@
+{
+  "allow_write": false,
+  "attempt_id": "e270decbc722e03452aadc8d",
+  "command_timeout": 900,
+  "commands": [
+    {
+      "background_process_leak": false,
+      "captured_output_chars": 1124,
+      "command": "set -euo pipefail\ntest \"$(uname -s)\" = Darwin\ntest -z \"$(git status --porcelain)\"\ngit fetch --no-tags origin chore/mvp-final-closeout-20261123\ntest \"$(git rev-parse refs/remotes/origin/chore/mvp-final-closeout-20261123)\" = \"e54c6c29fa4358b86081816dd5e20a2dd86d1e05\"\nROOT=\"$(git rev-parse --show-toplevel)\"\nTMP=\"$(mktemp -d /tmp/aicalls-mvp-docs-XXXXXX)\"\ntrap 'cd \"$ROOT\"; git worktree remove --force \"$TMP\" >/dev/null 2>&1 || true' EXIT\ngit worktree add --detach \"$TMP\" \"e54c6c29fa4358b86081816dd5e20a2dd86d1e05\"\ncd \"$TMP\"\ntest \"$(git rev-parse HEAD)\" = \"e54c6c29fa4358b86081816dd5e20a2dd86d1e05\"\nbash scripts/bin/test-profile.sh preflight\nPYTHONPATH=. python3 -m unittest scripts.tests.test_docs_check\ntest ! -e docs/images/settings.png\ntest ! -e docs/images/model-and-voice.png\necho \"MVP_FINAL_CLEANUP_PREFLIGHT_PASS=true\"\necho \"QA_SHA=e54c6c29fa4358b86081816dd5e20a2dd86d1e05\"",
+      "current_rss_mb": 1.88,
+      "elapsed_seconds": 2.356,
+      "exit_code": 0,
+      "idle_timed_out": false,
+      "memory_limit_mb": 1024,
+      "memory_limited": false,
+      "output": "From https://github.com/MichalMatu/ai-calls\n * branch              chore/mvp-final-closeout-20261123 -> FETCH_HEAD\n   95ca2926..e54c6c29  chore/mvp-final-closeout-20261123 -> origin/chore/mvp-final-closeout-20261123\nPreparing worktree (detached HEAD e54c6c29)\nHEAD is now at e54c6c29 docs: keep explicit MVP security hold contract\nANTI_FRICTION=PASS; known regressions absent and current rules preserved\nAUDIT_SCOPE=static_only; candidate model/transport timeouts need functional testing\nMODULE_BOUNDARY_GATE_PASS=true\nDOC_BUDGET_BYTES=19229/24576\nDOC_CONTRACT_WARN: documentation budget nearing limit: 19229/24576 bytes\nDOC_CONTRACT_WARN: README.md: file nearing size limit: 1310/2048 bytes\nDOC_CONTRACT_WARN: docs/architecture/SYSTEM.md: file nearing size limit: 1093/2048 bytes\nDOC_CONTRACT_WARN: docs/architecture/UI_SCREEN_MAP.md: file nearing size limit: 11736/14336 bytes\nDOC_CONTRACT_PASS=true\nDEV_PREFLIGHT_PASS=true\n.............\n----------------------------------------------------------------------\nRan 13 tests in 0.190s\n\nOK\nMVP_FINAL_CLEANUP_PREFLIGHT_PASS=true\nQA_SHA=e54c6c29fa4358b86081816dd5e20a2dd86d1e05\n",
+      "output_policy": "stream",
+      "output_truncated": false,
+      "peak_rss_mb": 1.88,
+      "stage_index": 1,
+      "stage_name": "validate-compact-docs-version-and-no-screenshots",
+      "stage_phase": "commands",
+      "stage_timeout": 900,
+      "stage_total": 1,
+      "timed_out": false
+    }
+  ],
+  "daemon_version": "4.20.16",
+  "edits": {},
+  "finished_at": "2026-11-23T16:46:57.665024+00:00",
+  "git_diff": {
+    "elapsed_seconds": 0.067,
+    "exit_code": 0,
+    "output": ""
+  },
+  "git_status": {
+    "elapsed_seconds": 0.105,
+    "exit_code": 0,
+    "output": ""
+  },
+  "id": "aicalls-mvp-final-cleanup-preflight-20261123-v2",
+  "idle_timeout": 300,
+  "memory_limit_mb": 1024,
+  "mode": "commands",
+  "stages": [
+    {
+      "elapsed_seconds": 2.356,
+      "outcome": "passed",
+      "stage_index": 1,
+      "stage_name": "validate-compact-docs-version-and-no-screenshots",
+      "stage_phase": "commands",
+      "stage_total": 1
+    }
+  ],
+  "started_at": "2026-11-23T16:46:53.531067+00:00",
+  "status": "done",
+  "task_digest": "26334829e2e3a6d0b1fb9340f3e042f2ebbc1098ee949dc972382b787ed5151d",
+  "task_timeout": 1200,
+  "verification": [],
+  "work_branch": "main"
+}

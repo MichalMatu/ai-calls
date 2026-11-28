@@ -1,0 +1,13 @@
+{
+  "event": "task_finished",
+  "task_id": "aicalls-production-gsm-023-host-qa-20261123-v1",
+  "task_digest": "aa6f2ec850bb7cf3109472cd8f7b504df3bcbb1ca77ed72e29a92714727fca69",
+  "status": "failed",
+  "failure_reason": "command_failed",
+  "finished_at": "2026-11-23T17:27:50.084747+00:00",
+  "attempt_id": "f4b4438541431fdb640c12db",
+  "daemon_version": "4.20.16",
+  "daemon_pid": 8395,
+  "updated_at": "2026-11-23T17:27:50.705902+00:00",
+  "pid": 8395
+}

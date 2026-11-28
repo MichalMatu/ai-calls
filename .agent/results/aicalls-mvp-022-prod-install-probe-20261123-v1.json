@@ -1,0 +1,61 @@
+{
+  "allow_write": false,
+  "attempt_id": "4ccb907fd8489c9e8d710efd",
+  "command_timeout": 600,
+  "commands": [
+    {
+      "background_process_leak": false,
+      "captured_output_chars": 675,
+      "command": "set -euo pipefail\ntest \"$(uname -s)\" = Darwin\nSERIAL=\"$(PYTHONPATH=scripts python3 -m aicall_tools.device.s22_adb_discovery)\"\ntest \"$(adb -s \"$SERIAL\" get-state)\" = device\nset +e\nPTH=\"$(adb -s \"$SERIAL\" shell pm path pl.michalmatu.aicallbridge 2>&1)\"\nCODE=\"$?\"\nset -e\necho \"PM_PATH_EXIT_CODE=$CODE\"\necho \"PM_PATH_LINES=$(printf '%s\\n' \"$PTH\" | grep -c '^package:' || true)\"\nif printf '%s\\n' \"$PTH\" | grep -q '^package:'; then echo \"PRODUCTION_PACKAGE_INSTALLED=true\"; else echo \"PRODUCTION_PACKAGE_INSTALLED=false\"; fi\nif adb -s \"$SERIAL\" shell pm list packages | grep -Fxq 'package:pl.michalmatu.aicallbridge'; then echo \"PROD_LISTED=true\"; else echo \"PROD_LISTED=false\"; fi\nif adb -s \"$SERIAL\" shell pm list packages | grep -Fxq 'package:pl.michalmatu.aicallbridge.s8lab'; then echo \"LAB_LISTED=true\"; else echo \"LAB_LISTED=false\"; fi\necho \"PHONE_PROBE_PASS=true\"",
+      "current_rss_mb": 3.61,
+      "elapsed_seconds": 0.777,
+      "exit_code": 0,
+      "idle_timed_out": false,
+      "memory_limit_mb": 1024,
+      "memory_limited": false,
+      "output": "PM_PATH_EXIT_CODE=1\nPM_PATH_LINES=0\nPRODUCTION_PACKAGE_INSTALLED=false\nError: java.lang.SecurityException: Shell does not have permission to access user 151\n com.android.server.am.ActivityManagerService.handleIncomingUser:8 android.app.ActivityManager.handleIncomingUser:5755 com.android.server.pm.PackageManagerShellCommand.translateUserId:24 \nPROD_LISTED=false\nError: java.lang.SecurityException: Shell does not have permission to access user 151\n com.android.server.am.ActivityManagerService.handleIncomingUser:8 android.app.ActivityManager.handleIncomingUser:5755 com.android.server.pm.PackageManagerShellCommand.translateUserId:24 \nLAB_LISTED=true\nPHONE_PROBE_PASS=true\n",
+      "output_policy": "stream",
+      "output_truncated": false,
+      "peak_rss_mb": 3.61,
+      "stage_index": 1,
+      "stage_name": "read-only-check-production-package-existence",
+      "stage_phase": "commands",
+      "stage_timeout": 600,
+      "stage_total": 1,
+      "timed_out": false
+    }
+  ],
+  "daemon_version": "4.20.16",
+  "edits": {},
+  "finished_at": "2026-11-23T16:56:17.257273+00:00",
+  "git_diff": {
+    "elapsed_seconds": 0.073,
+    "exit_code": 0,
+    "output": ""
+  },
+  "git_status": {
+    "elapsed_seconds": 0.097,
+    "exit_code": 0,
+    "output": ""
+  },
+  "id": "aicalls-mvp-022-prod-install-probe-20261123-v1",
+  "idle_timeout": 300,
+  "memory_limit_mb": 1024,
+  "mode": "commands",
+  "stages": [
+    {
+      "elapsed_seconds": 0.777,
+      "outcome": "passed",
+      "stage_index": 1,
+      "stage_name": "read-only-check-production-package-existence",
+      "stage_phase": "commands",
+      "stage_total": 1
+    }
+  ],
+  "started_at": "2026-11-23T16:56:14.743849+00:00",
+  "status": "done",
+  "task_digest": "70741074f7a41ebc3ce837bf4ffa0414a7ce31cfad9a4c41e03d931367d620ca",
+  "task_timeout": 900,
+  "verification": [],
+  "work_branch": "main"
+}

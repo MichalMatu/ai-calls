@@ -1,0 +1,24 @@
+{
+  "id": "aicalls-mvp-022-android-user0-probe-20261123-v1",
+  "dedupe_key": "aicalls-mvp-022-android-user0-probe-20261123-v1",
+  "dedupe_revision": 1,
+  "agent_binding": "c25f88c0-4682-414c-8062-c47fa4034cb0",
+  "mode": "commands",
+  "work_branch": "main",
+  "allow_write": false,
+  "resources": [
+    "adb:rfct70l7e8j"
+  ],
+  "output_policy": "summary",
+  "command_timeout": 600,
+  "idle_timeout": 300,
+  "task_timeout": 900,
+  "memory_limit_mb": 1024,
+  "steps": [
+    {
+      "name": "read-only-user-zero-package-manager-probe",
+      "timeout": 600,
+      "command": "set -euo pipefail\nSERIAL=\"$(PYTHONPATH=scripts python3 -m aicall_tools.device.s22_adb_discovery)\"\nCURRENT=\"$(adb -s \"$SERIAL\" shell am get-current-user 2>/dev/null | tr -d '\\r')\"\necho \"ANDROID_CURRENT_USER=$CURRENT\"\nfor PKG in pl.michalmatu.aicallbridge pl.michalmatu.aicallbridge.s8lab; do\n  case \"$PKG\" in *.s8lab) LABEL=LAB;; *) LABEL=PROD;; esac\n  set +e\n  OUTPUT=\"$(adb -s \"$SERIAL\" shell pm path --user 0 \"$PKG\" 2>&1)\"\n  CODE=\"$?\"\n  set -e\n  echo \"${LABEL}_USER0_PATH_EXIT=$CODE\"\n  echo \"${LABEL}_USER0_PATH_COUNT=$(printf '%s\\n' \"$OUTPUT\" | grep -c '^package:' || true)\"\ndone\nset +e\nPACKAGES=\"$(adb -s \"$SERIAL\" shell pm list packages --user 0 2>&1)\"\nCODE=\"$?\"\nset -e\necho \"USER0_PACKAGE_LIST_EXIT=$CODE\"\nif printf '%s\\n' \"$PACKAGES\" | grep -Fxq 'package:pl.michalmatu.aicallbridge'; then echo \"PROD_USER0_LISTED=true\"; else echo \"PROD_USER0_LISTED=false\"; fi\nif printf '%s\\n' \"$PACKAGES\" | grep -Fxq 'package:pl.michalmatu.aicallbridge.s8lab'; then echo \"LAB_USER0_LISTED=true\"; else echo \"LAB_USER0_LISTED=false\"; fi\necho \"USER0_PROBE_DONE=true\""
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "event": "task_finished",
+  "task_id": "aicalls-mark-022-superseded-wireless-adb-20261123-v1",
+  "task_digest": "8a7e6e743f07650b8fc078df8d2b63f36d510d2553bf3e91ac8beb4fbfb393a9",
+  "status": "done",
+  "failure_reason": null,
+  "finished_at": "2026-11-23T17:31:58.454839+00:00",
+  "attempt_id": "30e703e5f8b3bae730bdfe5f",
+  "daemon_version": "4.20.16",
+  "daemon_pid": 17459,
+  "updated_at": "2026-11-23T17:31:58.886430+00:00",
+  "pid": 17459
+}

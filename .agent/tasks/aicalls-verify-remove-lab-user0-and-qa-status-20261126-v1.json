@@ -1,0 +1,24 @@
+{
+  "id": "aicalls-verify-remove-lab-user0-and-qa-status-20261126-v1",
+  "dedupe_key": "aicalls-verify-remove-lab-user0-and-qa-status-20261126-v1",
+  "dedupe_revision": 1,
+  "agent_binding": "c25f88c0-4682-414c-8062-c47fa4034cb0",
+  "mode": "commands",
+  "work_branch": "main",
+  "allow_write": true,
+  "resources": [
+    "adb:rfct70l7e8j"
+  ],
+  "output_policy": "summary",
+  "command_timeout": 240,
+  "idle_timeout": 120,
+  "task_timeout": 600,
+  "memory_limit_mb": 1024,
+  "steps": [
+    {
+      "name": "verify-main-user-remove-obsolete-lab-and-check-owner-opt-in",
+      "timeout": 240,
+      "command": "set -euo pipefail\ntest \"$(uname -s)\" = Darwin\nSERIAL=\"$(PYTHONPATH=scripts python3 -m aicall_tools.device.s22_adb_discovery --serial RFCT70L7E8J)\"\nadbq() { adb -s \"$SERIAL\" \"$@\"; }\nMAIN=pl.michalmatu.aicallbridge\nLAB=pl.michalmatu.aicallbridge.s8lab\ntest \"$(adbq shell am get-current-user | tr -d '\\r')\" = 0\ncheck_safe() {\n  local states mode role host\n  states=\"$(adbq shell dumpsys telephony.registry | sed -n 's/.*mCallState=\\([0-9][0-9]*\\).*/\\1/p' | tr -d '\\r')\"\n  mode=\"$(adbq shell dumpsys audio | sed -n 's/.*Actual mode = \\(MODE_[A-Z_]*\\).*/\\1/p' | head -n1 | tr -d '\\r')\"\n  role=\"$(adbq shell cmd role get-role-holders --user 0 android.app.role.DIALER | tr -d '\\r')\"\n  host=\"$(adbq shell content call --uri content://pl.michalmatu.aicallbridge.gsmbinder --method status)\"\n  [[ -n \"$states\" && -z \"$(printf '%s\\n' \"$states\" | grep -v '^0$' || true)\" && \"$mode\" == MODE_NORMAL && \"$role\" == \"$MAIN\" && \"$host\" == *host_registered=true* ]]\n}\ncheck_safe || { echo HOLD_PHONE_OR_MAIN_HOST_NOT_READY; exit 50; }\nbefore=\"$(adbq shell pm path --user 0 \"$MAIN\" | tr -d '\\r')\"\n[[ \"$before\" == package:* ]]\npackages=\"$(adbq shell pm list packages --user 0 | tr -d '\\r')\"\n[[ \"$packages\" == *\"package:$MAIN\"* ]]\nif printf '%s\\n' \"$packages\" | grep -Fxq \"package:$LAB\"; then\n  check_safe\n  result=\"$(adbq shell pm uninstall --user 0 \"$LAB\" | tr -d '\\r')\"\n  [[ \"$result\" == Success ]] || { echo LAB_UNINSTALL_FAILED; exit 51; }\n  echo LAB_UNINSTALL_EXECUTED=true\nelse\n  echo LAB_ALREADY_ABSENT_USER0=true\nfi\npackages=\"$(adbq shell pm list packages --user 0 | tr -d '\\r')\"\nif printf '%s\\n' \"$packages\" | grep -Fxq \"package:$LAB\"; then\n  echo LAB_STILL_INSTALLED_USER0=true; exit 52\nfi\necho LAB_ABSENT_USER0=true\ntest \"$(adbq shell pm path --user 0 \"$MAIN\" | tr -d '\\r')\" = \"$before\"\ncheck_safe\necho MAIN_GSM_HOST_READY=true\nresult=\"$(adbq shell content call --uri content://pl.michalmatu.aicallbridge.gsmbinder --method qa_status)\"\nif [[ \"$result\" == *armed=true* ]]; then echo QA_ARMED=true; elif [[ \"$result\" == *armed=false* ]]; then echo QA_ARMED=false; else echo QA_ARMED_UNKNOWN=true; fi\necho NO_CALLS=true"
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "allow_write": true,
+  "attempt_id": "96e1cfdf3ec3254742da56c1",
+  "command_timeout": 900,
+  "commands": [
+    {
+      "background_process_leak": false,
+      "captured_output_chars": 1030,
+      "command": "set -euo pipefail\ntest \"$(uname -s)\" = Darwin\ntest -z \"$(git status --porcelain)\"\ngit fetch --no-tags origin feat/outgoing-live-qa-20261125\ntest \"$(git rev-parse refs/remotes/origin/feat/outgoing-live-qa-20261125)\" = \"2cd0010be02ae660ee27815328f4c32d44932623\"\necho \"QA_SHA=2cd0010be02ae660ee27815328f4c32d44932623\"\nCACHE=\"$HOME/.local/share/aicalls-qa/2cd0010be02ae660ee27815328f4c32d44932623\"\nCANDIDATE=\"$CACHE/candidate.apk\"\nPREVIOUS=\"$CACHE/previous.apk\"\ntest -s \"$CANDIDATE\" && test -s \"$PREVIOUS\"\nSIGNER=\"$(find \"$HOME/Library/Android/sdk/build-tools\" -name apksigner -type f | sort -V | tail -1)\"\ntest -x \"$SIGNER\"\ncertificate() { \"$SIGNER\" verify --print-certs \"$1\" | sed -n 's/.*Signer #1 certificate SHA-256 digest: //p' | head -1; }\nCERT=\"$(certificate \"$CANDIDATE\")\"\ntest \"$CERT\" = fb07493cf97b0a84ec410f7f72f12938b7f9d47151546e15c049c49c27807b11\ntest \"$(certificate \"$PREVIOUS\")\" = \"$CERT\"\nPKG=pl.michalmatu.aicallbridge\nSERIAL=\"$(PYTHONPATH=scripts python3 -m aicall_tools.device.s22_adb_discovery --serial RFCT70L7E8J)\"\nadbq() { adb -s \"$SERIAL\" \"$@\"; }\nphone_idle() {\n  local states mode\n  states=\"$(adbq shell dumpsys telephony.registry | sed -n 's/.*mCallState=\\([0-9][0-9]*\\).*/\\1/p' | tr -d '\\r')\"\n  mode=\"$(adbq shell dumpsys audio | sed -n 's/.*Actual mode = \\(MODE_[A-Z_]*\\).*/\\1/p' | head -n1 | tr -d '\\r')\"\n  [[ -n \"$states\" && -z \"$(printf '%s\\n' \"$states\" | grep -v '^0$' || true)\" && \"$mode\" == MODE_NORMAL ]]\n}\nrole_ok() { [[ \"$(adbq shell cmd role get-role-holders --user 0 android.app.role.DIALER | tr -d '\\r')\" == \"$PKG\" ]]; }\npackage_path() {\n  local paths\n  paths=\"$(adbq shell pm path \"$PKG\" | tr -d '\\r')\"\n  [[ \"$(printf '%s\\n' \"$paths\" | grep -c '^package:')\" == 1 ]]\n  printf '%s\\n' \"$paths\" | sed -n 's/^package://p'\n}\nhost_ready() {\n  local response\n  response=\"$(adbq shell content call --uri content://pl.michalmatu.aicallbridge.gsmbinder --method status 2>/dev/null || true)\"\n  [[ \"$response\" == *host_registered=true* ]]\n}\nstart_host() {\n  phone_idle && role_ok || return 1\n  if host_ready; then return 0; fi\n  adbq shell 'APP=pl.michalmatu.aicallbridge; APK=\"$(pm path --user 0 \"$APP\" | sed -n \"s/^package://p\" | head -n 1)\"; test -n \"$APK\" && test -r \"$APK\" || exit 7; CLASSPATH=\"$APK\" nohup app_process /system/bin --nice-name=aicalls_gsm_binder pl.michalmatu.aicallbridge.session.GsmShellBinderMediaHost pl.michalmatu.aicallbridge </dev/null >/dev/null 2>&1 &' >/dev/null\n  for i in {1..25}; do\n    if host_ready; then return 0; fi\n    sleep 1\n  done\n  return 1\n}\nWORK=\"$(mktemp -d /tmp/aicalls-single-upgrade-XXXXXX)\"\nINSTALLED=0\ncleanup() {\n  local code=$?\n  trap - EXIT\n  if [[ \"$code\" != 0 && \"$INSTALLED\" == 1 ]]; then\n    if phone_idle && role_ok; then\n      if adbq install --no-streaming -r \"$PREVIOUS\" >/dev/null; then\n        echo ROLLBACK_APK_RESTORED=true\n        if [[ \"${HOST_BEFORE:-false}\" == true ]]; then start_host && echo ROLLBACK_HOST_RESTORED=true || echo ROLLBACK_HOST_HOLD=true; fi\n      else echo ROLLBACK_FAILED=true; fi\n    else echo ROLLBACK_DEFERRED_PHONE_NOT_IDLE_OR_ROLE_CHANGED=true; fi\n  fi\n  rm -rf \"$WORK\"\n  exit \"$code\"\n}\ntrap cleanup EXIT\ntest \"$(adbq shell getprop ro.build.version.release | tr -d '\\r')\" = 16\nphone_idle && role_ok || { echo PREFLIGHT_PHONE_NOT_IDLE_OR_ROLE_CHANGED=true; exit 50; }\nadbq pull \"$(package_path)\" \"$WORK/current.apk\" >/dev/null\ntest \"$(shasum -a 256 \"$WORK/current.apk\" | awk '{print $1}')\" = \"$(shasum -a 256 \"$PREVIOUS\" | awk '{print $1}')\" || { echo PREVIOUS_APK_CHANGED_REFUSED=true; exit 51; }\necho EXACT_ROLLBACK_MATCH=true\nHOST_BEFORE=false\nif host_ready; then HOST_BEFORE=true; fi\necho STAGE=UPGRADE_EXISTING_MAIN_APP\nphone_idle && role_ok || exit 52\nadbq install --no-streaming -r \"$CANDIDATE\"\nINSTALLED=1\nphone_idle && role_ok || exit 53\nadbq pull \"$(package_path)\" \"$WORK/installed.apk\" >/dev/null\ntest \"$(shasum -a 256 \"$WORK/installed.apk\" | awk '{print $1}')\" = \"$(shasum -a 256 \"$CANDIDATE\" | awk '{print $1}')\"\necho MAIN_APP_APK_SHA256_MATCH=true\necho STAGE=RESTORE_EXISTING_GSM_HOST\nstart_host || { echo MAIN_GSM_HOST_BOOTSTRAP_FAILED=true; exit 54; }\necho MAIN_GSM_HOST_READY=true\necho STAGE=QA_DEFAULT_DENIED\nSTATUS=\"$(adbq shell content call --uri content://pl.michalmatu.aicallbridge.gsmbinder --method qa_status)\"\n[[ \"$STATUS\" == *armed=false* ]] || { echo QA_NOT_DEFAULT_DISABLED=true; exit 55; }\necho QA_DEFAULT_DISABLED=true\n# Read-only check of the fixed endpoint while disarmed, without logging private data.\nDENIED=\"$(adbq shell content read --uri content://pl.michalmatu.aicallbridge.gsmbinder/qa/state 2>&1 || true)\"\n[[ \"$DENIED\" == *qa_owner_opt_in_required* || \"$DENIED\" == *SecurityException* ]] || { echo QA_DISARMED_READ_DENIAL_UNVERIFIED=true; exit 56; }\necho QA_DISARMED_READ_DENIED=true\nphone_idle && role_ok && host_ready\nINSTALLED=0\necho MAIN_APP_UPGRADED=true\necho PRODUCTION_ROLE_UNCHANGED=true\necho NO_CALLS_NO_DATA_CLEAR=true\necho \"QA_SHA=2cd0010be02ae660ee27815328f4c32d44932623\"",
+      "current_rss_mb": 11.3,
+      "elapsed_seconds": 35.753,
+      "exit_code": 0,
+      "idle_timed_out": false,
+      "memory_limit_mb": 2048,
+      "memory_limited": false,
+      "output": "From https://github.com/MichalMatu/ai-calls\n * branch              feat/outgoing-live-qa-20261125 -> FETCH_HEAD\nQA_SHA=2cd0010be02ae660ee27815328f4c32d44932623\n/data/app/~~BcSDxBowu5T0nyC3pJJtcg==/pl.michalmatu.aicallbridge-4VZvqW3695G_UnJNs0n_nQ==/base.apk: 1 file pulled, 0 skipped. 36.8 MB/s (227991443 bytes in 5.902s)\nEXACT_ROLLBACK_MATCH=true\nSTAGE=UPGRADE_EXISTING_MAIN_APP\n/Users/michal/.local/share/aicalls-qa/2cd0010be02ae660ee27815328f4c32d44932623/candidate.apk: 1 file pushed, 0 skipped. 78.0 MB/s (228011923 bytes in 2.787s)\nPerforming Push Install\nSuccess\n/data/app/~~Y5Uar0nCwSP0wOWc0fzpbQ==/pl.michalmatu.aicallbridge-t_EPGr1zxo6wk-Ipto4h1g==/base.apk: 1 file pulled, 0 skipped. 42.4 MB/s (228011923 bytes in 5.129s)\nMAIN_APP_APK_SHA256_MATCH=true\nSTAGE=RESTORE_EXISTING_GSM_HOST\nMAIN_GSM_HOST_READY=true\nSTAGE=QA_DEFAULT_DENIED\nQA_DEFAULT_DISABLED=true\nQA_DISARMED_READ_DENIED=true\nMAIN_APP_UPGRADED=true\nPRODUCTION_ROLE_UNCHANGED=true\nNO_CALLS_NO_DATA_CLEAR=true\nQA_SHA=2cd0010be02ae660ee27815328f4c32d44932623\n",
+      "output_policy": "stream",
+      "output_truncated": false,
+      "peak_rss_mb": 31.47,
+      "stage_index": 1,
+      "stage_name": "upgrade-one-main-app-restore-existing-host-check-default-denial",
+      "stage_phase": "commands",
+      "stage_timeout": 900,
+      "stage_total": 1,
+      "timed_out": false
+    }
+  ],
+  "daemon_version": "4.20.16",
+  "edits": {},
+  "finished_at": "2026-11-25T23:32:36.395512+00:00",
+  "git_diff": {
+    "elapsed_seconds": 0.068,
+    "exit_code": 0,
+    "output": ""
+  },
+  "git_status": {
+    "elapsed_seconds": 0.103,
+    "exit_code": 0,
+    "output": ""
+  },
+  "id": "aicalls-single-app-outgoing-qa-upgrade-20261126-v1",
+  "idle_timeout": 240,
+  "memory_limit_mb": 2048,
+  "mode": "commands",
+  "stages": [
+    {
+      "elapsed_seconds": 35.753,
+      "outcome": "passed",
+      "stage_index": 1,
+      "stage_name": "upgrade-one-main-app-restore-existing-host-check-default-denial",
+      "stage_phase": "commands",
+      "stage_total": 1
+    }
+  ],
+  "started_at": "2026-11-25T23:31:59.180567+00:00",
+  "status": "done",
+  "task_digest": "1e44805d7143abe820a5a8b27086858637cf4be513d4020f40bd9fefc156b03f",
+  "task_timeout": 1500,
+  "verification": [],
+  "work_branch": "main"
+}

@@ -1,0 +1,13 @@
+{
+  "event": "task_finished",
+  "task_id": "aicalls-single-app-outgoing-qa-upgrade-20261126-v1",
+  "task_digest": "1e44805d7143abe820a5a8b27086858637cf4be513d4020f40bd9fefc156b03f",
+  "status": "done",
+  "failure_reason": null,
+  "finished_at": "2026-11-25T23:32:36.395512+00:00",
+  "attempt_id": "96e1cfdf3ec3254742da56c1",
+  "daemon_version": "4.20.16",
+  "daemon_pid": 71339,
+  "updated_at": "2026-11-25T23:32:36.656989+00:00",
+  "pid": 71339
+}

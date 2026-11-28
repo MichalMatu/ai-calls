@@ -1,0 +1,13 @@
+{
+  "event": "task_finished",
+  "task_id": "aicalls-release-gsm-package-reference-audit-20261123-v1",
+  "task_digest": "7b30efc0de79a0ebf98b676ed9c908629a40ad94b685707899bea0a536b90eba",
+  "status": "failed",
+  "failure_reason": "command_failed",
+  "finished_at": "2026-11-23T17:18:44.034444+00:00",
+  "attempt_id": "3b682b47b2f651c438954008",
+  "daemon_version": "4.20.16",
+  "daemon_pid": 1063,
+  "updated_at": "2026-11-23T17:18:44.319906+00:00",
+  "pid": 1063
+}

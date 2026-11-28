@@ -1,0 +1,24 @@
+{
+  "id": "aicalls-mvp-022-prod-install-probe-20261123-v1",
+  "dedupe_key": "aicalls-mvp-022-prod-install-probe-20261123-v1",
+  "dedupe_revision": 1,
+  "agent_binding": "c25f88c0-4682-414c-8062-c47fa4034cb0",
+  "mode": "commands",
+  "work_branch": "main",
+  "allow_write": false,
+  "resources": [
+    "adb:rfct70l7e8j"
+  ],
+  "output_policy": "summary",
+  "command_timeout": 600,
+  "idle_timeout": 300,
+  "task_timeout": 900,
+  "memory_limit_mb": 1024,
+  "steps": [
+    {
+      "name": "read-only-check-production-package-existence",
+      "timeout": 600,
+      "command": "set -euo pipefail\ntest \"$(uname -s)\" = Darwin\nSERIAL=\"$(PYTHONPATH=scripts python3 -m aicall_tools.device.s22_adb_discovery)\"\ntest \"$(adb -s \"$SERIAL\" get-state)\" = device\nset +e\nPTH=\"$(adb -s \"$SERIAL\" shell pm path pl.michalmatu.aicallbridge 2>&1)\"\nCODE=\"$?\"\nset -e\necho \"PM_PATH_EXIT_CODE=$CODE\"\necho \"PM_PATH_LINES=$(printf '%s\\n' \"$PTH\" | grep -c '^package:' || true)\"\nif printf '%s\\n' \"$PTH\" | grep -q '^package:'; then echo \"PRODUCTION_PACKAGE_INSTALLED=true\"; else echo \"PRODUCTION_PACKAGE_INSTALLED=false\"; fi\nif adb -s \"$SERIAL\" shell pm list packages | grep -Fxq 'package:pl.michalmatu.aicallbridge'; then echo \"PROD_LISTED=true\"; else echo \"PROD_LISTED=false\"; fi\nif adb -s \"$SERIAL\" shell pm list packages | grep -Fxq 'package:pl.michalmatu.aicallbridge.s8lab'; then echo \"LAB_LISTED=true\"; else echo \"LAB_LISTED=false\"; fi\necho \"PHONE_PROBE_PASS=true\""
+    }
+  ]
+}

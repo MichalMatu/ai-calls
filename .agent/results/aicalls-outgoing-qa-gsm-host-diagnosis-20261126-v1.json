@@ -1,0 +1,59 @@
+{
+  "allow_write": false,
+  "attempt_id": "674529be8ce1edc387a583c1",
+  "command_timeout": 120,
+  "commands": [
+    {
+      "budget_exhausted": true,
+      "budget_remaining_seconds": 178.67,
+      "command": "set -euo pipefail\ntest \"$(uname -s)\" = Darwin\ntest -z \"$(git status --porcelain)\"\nSERIAL=\"$(PYTHONPATH=scripts python3 -m aicall_tools.device.s22_adb_discovery)\"\nSTATE=\"$(adb -s \"$SERIAL\" shell dumpsys telephony.registry | sed -n 's/.*mCallState=\\([0-9]\\).*/\\1/p' | head -n1 | tr -d '\\r')\"\n[[ \"$STATE\" == 0 ]] || { echo PHONE_IDLE=false; exit 1; }\necho PHONE_IDLE=true\nROLE=\"$(adb -s \"$SERIAL\" shell cmd role get-role-holders --user 0 android.app.role.DIALER 2>/dev/null | tr -d '\\r' || true)\"\ncase \"$ROLE\" in\npl.michalmatu.aicallbridge.s8lab) echo DIALER_ROLE=LAB ;;\npl.michalmatu.aicallbridge) echo DIALER_ROLE=PRODUCTION ;;\n*) echo DIALER_ROLE=OTHER_OR_UNKNOWN ;;\nesac\nfor pkg in pl.michalmatu.aicallbridge pl.michalmatu.aicallbridge.s8lab; do\n  if [[ \"$pkg\" == *.s8lab ]]; then label=LAB; else label=PRODUCTION; fi\n  if [[ \"$(adb -s \"$SERIAL\" shell pm path \"$pkg\" 2>/dev/null || true)\" == package:* ]]; then\n    echo \"${label}_INSTALLED=true\"\n    result=\"$(adb -s \"$SERIAL\" shell content call --uri \"content://$pkg.gsmbinder\" --method status 2>/dev/null || true)\"\n    if [[ \"$result\" == *host_registered=true* ]]; then\n      echo \"${label}_HOST_READY=true\"\n    else\n      echo \"${label}_HOST_READY=false\"\n    fi\n  else\n    echo \"${label}_INSTALLED=false\"\n  fi\ndone\necho DIAGNOSTICS_ONLY=true",
+      "elapsed_seconds": 0.0,
+      "exit_code": 125,
+      "idle_timed_out": false,
+      "memory_limited": false,
+      "not_started": true,
+      "output": "",
+      "required_budget_seconds": 180.0,
+      "stage_index": 1,
+      "stage_name": "read-only-identify-lab-and-production-gsm-host-and-dialer",
+      "stage_phase": "commands",
+      "stage_timeout": 120,
+      "stage_total": 1,
+      "timed_out": false
+    }
+  ],
+  "daemon_version": "4.20.16",
+  "edits": {},
+  "failure_reason": "task_budget_exhausted",
+  "finished_at": "2026-11-25T23:13:33.965668+00:00",
+  "git_diff": {
+    "elapsed_seconds": 0.067,
+    "exit_code": 0,
+    "output": ""
+  },
+  "git_status": {
+    "elapsed_seconds": 0.075,
+    "exit_code": 0,
+    "output": ""
+  },
+  "id": "aicalls-outgoing-qa-gsm-host-diagnosis-20261126-v1",
+  "idle_timeout": 60,
+  "memory_limit_mb": 1024,
+  "mode": "commands",
+  "stages": [
+    {
+      "elapsed_seconds": 0.0,
+      "outcome": "not_started",
+      "stage_index": 1,
+      "stage_name": "read-only-identify-lab-and-production-gsm-host-and-dialer",
+      "stage_phase": "commands",
+      "stage_total": 1
+    }
+  ],
+  "started_at": "2026-11-25T23:13:32.493457+00:00",
+  "status": "failed",
+  "task_digest": "14fd77e1977acb837e6ba30c0bb8e17be969c3d37ea999fbb1e0c558aca790e6",
+  "task_timeout": 180,
+  "verification": [],
+  "work_branch": "main"
+}

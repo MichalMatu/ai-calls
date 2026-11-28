@@ -1,0 +1,13 @@
+{
+  "event": "task_finished",
+  "task_id": "aicalls-outgoing-qa-gsm-host-diagnosis-20261126-v1",
+  "task_digest": "14fd77e1977acb837e6ba30c0bb8e17be969c3d37ea999fbb1e0c558aca790e6",
+  "status": "failed",
+  "failure_reason": "task_budget_exhausted",
+  "finished_at": "2026-11-25T23:13:33.965668+00:00",
+  "attempt_id": "674529be8ce1edc387a583c1",
+  "daemon_version": "4.20.16",
+  "daemon_pid": 49523,
+  "updated_at": "2026-11-25T23:13:34.193927+00:00",
+  "pid": 49523
+}

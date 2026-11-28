@@ -1,0 +1,13 @@
+{
+  "event": "task_finished",
+  "task_id": "aicalls-023-public-preview-release-replace-022-20261123-v1",
+  "task_digest": "b256c1db109920b433d45fd108a69d8027d84e745aaa077600ef768f2b85420e",
+  "status": "done",
+  "failure_reason": null,
+  "finished_at": "2026-11-23T22:28:24.738342+00:00",
+  "attempt_id": "bd10308867b3a78ad67f8ecb",
+  "daemon_version": "4.20.16",
+  "daemon_pid": 52236,
+  "updated_at": "2026-11-23T22:28:25.209301+00:00",
+  "pid": 52236
+}

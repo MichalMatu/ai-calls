@@ -1,0 +1,61 @@
+{
+  "allow_write": false,
+  "attempt_id": "1bbe871764bb2c3b4b72cb42",
+  "command_timeout": 600,
+  "commands": [
+    {
+      "background_process_leak": false,
+      "captured_output_chars": 209,
+      "command": "set -euo pipefail\nSERIAL=\"$(PYTHONPATH=scripts python3 -m aicall_tools.device.s22_adb_discovery)\"\nCURRENT=\"$(adb -s \"$SERIAL\" shell am get-current-user 2>/dev/null | tr -d '\\r')\"\necho \"ANDROID_CURRENT_USER=$CURRENT\"\nfor PKG in pl.michalmatu.aicallbridge pl.michalmatu.aicallbridge.s8lab; do\n  case \"$PKG\" in *.s8lab) LABEL=LAB;; *) LABEL=PROD;; esac\n  set +e\n  OUTPUT=\"$(adb -s \"$SERIAL\" shell pm path --user 0 \"$PKG\" 2>&1)\"\n  CODE=\"$?\"\n  set -e\n  echo \"${LABEL}_USER0_PATH_EXIT=$CODE\"\n  echo \"${LABEL}_USER0_PATH_COUNT=$(printf '%s\\n' \"$OUTPUT\" | grep -c '^package:' || true)\"\ndone\nset +e\nPACKAGES=\"$(adb -s \"$SERIAL\" shell pm list packages --user 0 2>&1)\"\nCODE=\"$?\"\nset -e\necho \"USER0_PACKAGE_LIST_EXIT=$CODE\"\nif printf '%s\\n' \"$PACKAGES\" | grep -Fxq 'package:pl.michalmatu.aicallbridge'; then echo \"PROD_USER0_LISTED=true\"; else echo \"PROD_USER0_LISTED=false\"; fi\nif printf '%s\\n' \"$PACKAGES\" | grep -Fxq 'package:pl.michalmatu.aicallbridge.s8lab'; then echo \"LAB_USER0_LISTED=true\"; else echo \"LAB_USER0_LISTED=false\"; fi\necho \"USER0_PROBE_DONE=true\"",
+      "current_rss_mb": 3.38,
+      "elapsed_seconds": 1.133,
+      "exit_code": 0,
+      "idle_timed_out": false,
+      "memory_limit_mb": 1024,
+      "memory_limited": false,
+      "output": "ANDROID_CURRENT_USER=0\nPROD_USER0_PATH_EXIT=1\nPROD_USER0_PATH_COUNT=0\nLAB_USER0_PATH_EXIT=0\nLAB_USER0_PATH_COUNT=1\nUSER0_PACKAGE_LIST_EXIT=0\nPROD_USER0_LISTED=false\nLAB_USER0_LISTED=true\nUSER0_PROBE_DONE=true\n",
+      "output_policy": "stream",
+      "output_truncated": false,
+      "peak_rss_mb": 3.38,
+      "stage_index": 1,
+      "stage_name": "read-only-user-zero-package-manager-probe",
+      "stage_phase": "commands",
+      "stage_timeout": 600,
+      "stage_total": 1,
+      "timed_out": false
+    }
+  ],
+  "daemon_version": "4.20.16",
+  "edits": {},
+  "finished_at": "2026-11-23T16:57:15.006402+00:00",
+  "git_diff": {
+    "elapsed_seconds": 0.071,
+    "exit_code": 0,
+    "output": ""
+  },
+  "git_status": {
+    "elapsed_seconds": 0.092,
+    "exit_code": 0,
+    "output": ""
+  },
+  "id": "aicalls-mvp-022-android-user0-probe-20261123-v1",
+  "idle_timeout": 300,
+  "memory_limit_mb": 1024,
+  "mode": "commands",
+  "stages": [
+    {
+      "elapsed_seconds": 1.133,
+      "outcome": "passed",
+      "stage_index": 1,
+      "stage_name": "read-only-user-zero-package-manager-probe",
+      "stage_phase": "commands",
+      "stage_total": 1
+    }
+  ],
+  "started_at": "2026-11-23T16:57:12.164498+00:00",
+  "status": "done",
+  "task_digest": "901664efef4476971d42ffb333e0c6f1da444cf3a362b72d704a304da5f96305",
+  "task_timeout": 900,
+  "verification": [],
+  "work_branch": "main"
+}

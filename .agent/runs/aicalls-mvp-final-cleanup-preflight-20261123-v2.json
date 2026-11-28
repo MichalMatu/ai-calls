@@ -1,0 +1,13 @@
+{
+  "event": "task_finished",
+  "task_id": "aicalls-mvp-final-cleanup-preflight-20261123-v2",
+  "task_digest": "26334829e2e3a6d0b1fb9340f3e042f2ebbc1098ee949dc972382b787ed5151d",
+  "status": "done",
+  "failure_reason": null,
+  "finished_at": "2026-11-23T16:46:57.665024+00:00",
+  "attempt_id": "e270decbc722e03452aadc8d",
+  "daemon_version": "4.20.16",
+  "daemon_pid": 61194,
+  "updated_at": "2026-11-23T16:46:58.141324+00:00",
+  "pid": 61194
+}

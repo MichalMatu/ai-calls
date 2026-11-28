@@ -1,0 +1,61 @@
+{
+  "allow_write": true,
+  "attempt_id": "7c369d346a9be0a2396d55e4",
+  "command_timeout": 300,
+  "commands": [
+    {
+      "background_process_leak": false,
+      "captured_output_chars": 1001,
+      "command": "set -euo pipefail\ntest \"$(uname -s)\" = Darwin\ntest -z \"$(git status --porcelain)\"\nBRANCH=feat/outgoing-live-qa-20261125\nEXPECTED_MAIN=0b335324093de84056c5f79143a6bf25fbc1143e\nEXPECTED_FEATURE=a9735ae967689190cb42eac8d41580493d7aba0b\ntest \"$(git ls-remote origin refs/heads/main | awk '{print $1}')\" = \"$EXPECTED_MAIN\"\ntest \"$(git ls-remote origin \"refs/heads/$BRANCH\" | awk '{print $1}')\" = \"$EXPECTED_FEATURE\"\necho MAIN_UNCHANGED=true\nCACHE=\"$HOME/.local/share/aicalls-qa\"\nORIGINAL=\"$CACHE/2cd0010be02ae660ee27815328f4c32d44932623/previous.apk\"\nCURRENT=\"$CACHE/$EXPECTED_FEATURE/candidate.apk\"\ntest -s \"$ORIGINAL\" && test -s \"$CURRENT\"\nSIGNER=\"$(find \"$HOME/Library/Android/sdk/build-tools\" -name apksigner -type f | sort -V | tail -1)\"\ncertificate() { \"$SIGNER\" verify --print-certs \"$1\" | sed -n 's/.*Signer #1 certificate SHA-256 digest: //p' | head -1; }\ntest \"$(certificate \"$ORIGINAL\")\" = fb07493cf97b0a84ec410f7f72f12938b7f9d47151546e15c049c49c27807b11\ntest \"$(certificate \"$CURRENT\")\" = \"$(certificate \"$ORIGINAL\")\"\nPKG=pl.michalmatu.aicallbridge\nSERIAL=\"$(PYTHONPATH=scripts python3 -m aicall_tools.device.s22_adb_discovery --serial RFCT70L7E8J)\"\nadbq() { adb -s \"$SERIAL\" \"$@\"; }\nphone_idle() {\n  local states mode\n  states=\"$(adbq shell dumpsys telephony.registry | sed -n 's/.*mCallState=\\([0-9][0-9]*\\).*/\\1/p' | tr -d '\\r')\"\n  mode=\"$(adbq shell dumpsys audio | sed -n 's/.*Actual mode = \\(MODE_[A-Z_]*\\).*/\\1/p' | head -n1 | tr -d '\\r')\"\n  [[ -n \"$states\" && -z \"$(printf '%s\\n' \"$states\" | grep -v '^0$' || true)\" && \"$mode\" == MODE_NORMAL ]]\n}\nrole_ok() { [[ \"$(adbq shell cmd role get-role-holders --user 0 android.app.role.DIALER | tr -d '\\r')\" == \"$PKG\" ]]; }\npackage_path() {\n  local paths\n  paths=\"$(adbq shell pm path --user 0 \"$PKG\" | tr -d '\\r')\"\n  [[ \"$(printf '%s\\n' \"$paths\" | grep -c '^package:')\" == 1 ]]\n  printf '%s\\n' \"$paths\" | sed -n 's/^package://p'\n}\nhash() { shasum -a 256 \"$1\" | awk '{print $1}'; }\nhost_ready() {\n  local response\n  response=\"$(adbq shell content call --uri content://pl.michalmatu.aicallbridge.gsmbinder --method status 2>/dev/null || true)\"\n  [[ \"$response\" == *host_registered=true* ]]\n}\nWORK=\"$(mktemp -d /tmp/aicalls-restore-original-XXXXXX)\"\ntrap 'rm -rf \"$WORK\"' EXIT\nphone_idle && role_ok || { echo PHONE_NOT_IDLE_OR_ROLE_CHANGED; exit 50; }\nadbq pull \"$(package_path)\" \"$WORK/before.apk\" >/dev/null\nif [[ \"$(hash \"$WORK/before.apk\")\" == \"$(hash \"$ORIGINAL\")\" ]]; then\n  echo ORIGINAL_ALREADY_INSTALLED=true\nelif [[ \"$(hash \"$WORK/before.apk\")\" == \"$(hash \"$CURRENT\")\" ]]; then\n  echo STAGE=RESTORE_EXACT_PRE_TASK_APK\n  phone_idle && role_ok\n  adbq install --no-streaming -r \"$ORIGINAL\"\nelse\n  echo UNKNOWN_INSTALLED_APK_REFUSED; exit 51\nfi\nphone_idle && role_ok\nadbq pull \"$(package_path)\" \"$WORK/after.apk\" >/dev/null\ntest \"$(hash \"$WORK/after.apk\")\" = \"$(hash \"$ORIGINAL\")\"\necho ORIGINAL_APK_SHA256_MATCH=true\necho ORIGINAL_APK_RESTORED=true\necho PRODUCTION_ROLE_UNCHANGED=true\nPACKAGES=\"$(adbq shell pm list packages --user 0 | tr -d '\\r')\"\nprintf '%s\\n' \"$PACKAGES\" | grep -Fxq \"package:$PKG\"\nif printf '%s\\n' \"$PACKAGES\" | grep -Fxq \"package:$PKG.s8lab\"; then echo UNEXPECTED_LAB_INSTALLED; exit 52; fi\necho ONE_MAIN_APP=true\n# A new provider instance after package replacement must not expose the QA endpoint.\nQA_STATUS=\"$(adbq shell content call --uri content://pl.michalmatu.aicallbridge.gsmbinder --method qa_status 2>&1 || true)\"\nif [[ \"$QA_STATUS\" == *armed=true* || \"$QA_STATUS\" == *armed=false* ]]; then echo NEW_QA_ENDPOINT_STILL_PRESENT; exit 53; fi\necho NEW_QA_ENDPOINT_REMOVED=true\nif host_ready; then echo GSM_HOST_READY=true; else\n  phone_idle && role_ok\n  adbq shell 'APP=pl.michalmatu.aicallbridge; APK=\"$(pm path --user 0 \"$APP\" | sed -n \"s/^package://p\" | head -n 1)\"; test -n \"$APK\" && test -r \"$APK\" || exit 7; CLASSPATH=\"$APK\" nohup app_process /system/bin --nice-name=aicalls_gsm_binder pl.michalmatu.aicallbridge.session.GsmShellBinderMediaHost pl.michalmatu.aicallbridge </dev/null >/dev/null 2>&1 &' >/dev/null\n  for i in {1..25}; do if host_ready; then break; fi; sleep 1; done\n  host_ready || { echo ORIGINAL_GSM_HOST_NOT_READY; exit 54; }\n  echo GSM_HOST_READY=true\nfi\nphone_idle && role_ok\nrm -f \"$CACHE/one-time-stage/stage-20261126-v1.pem\"\necho NO_CALLS_NO_DATA_CLEAR=true\necho STAGE=DELETE_REQUESTED_FEATURE_BRANCH\ntest \"$(git ls-remote origin refs/heads/main | awk '{print $1}')\" = \"$EXPECTED_MAIN\"\ntest \"$(git ls-remote origin \"refs/heads/$BRANCH\" | awk '{print $1}')\" = \"$EXPECTED_FEATURE\"\ngit push --force-with-lease=\"refs/heads/$BRANCH:$EXPECTED_FEATURE\" origin \":refs/heads/$BRANCH\"\ntest -z \"$(git ls-remote origin \"refs/heads/$BRANCH\")\"\necho REMOTE_FEATURE_BRANCH_DELETED=true\nif git show-ref --verify --quiet \"refs/heads/$BRANCH\"; then\n  if [[ \"$(git rev-parse \"refs/heads/$BRANCH\")\" = \"$EXPECTED_FEATURE\" ]] && ! git worktree list --porcelain | grep -Fxq \"branch refs/heads/$BRANCH\"; then\n    git branch -D \"$BRANCH\"\n    echo LOCAL_FEATURE_BRANCH_DELETED=true\n  else\n    echo LOCAL_FEATURE_BRANCH_RETAINED_DUE_TO_WORKTREE_OR_DIFFERENT_HEAD=true\n  fi\nelse\n  echo LOCAL_FEATURE_BRANCH_ABSENT=true\nfi\ntest \"$(git ls-remote origin refs/heads/main | awk '{print $1}')\" = \"$EXPECTED_MAIN\"\necho MAIN_UNCHANGED=true\necho ROLLBACK_COMPLETE=true",
+      "current_rss_mb": 19.34,
+      "elapsed_seconds": 39.506,
+      "exit_code": 0,
+      "idle_timed_out": false,
+      "memory_limit_mb": 1024,
+      "memory_limited": false,
+      "output": "MAIN_UNCHANGED=true\n/data/app/~~8HTt_Tdn0GB_sxsNQZzGIg==/pl.michalmatu.aicallbridge-sPn1xGQTNZed5OPSBsPgeA==/base.apk: 1 file pulled, 0 skipped. 40.2 MB/s (228011923 bytes in 5.412s)\nSTAGE=RESTORE_EXACT_PRE_TASK_APK\n/Users/michal/.local/share/aicalls-qa/2cd0010be02ae660ee27815328f4c32d44932623/previous.apk: 1 file pushed, 0 skipped. 61.9 MB/s (227991443 bytes in 3.513s)\nPerforming Push Install\nSuccess\n/data/app/~~fs8stNvlI6kIRBVpaBvJzA==/pl.michalmatu.aicallbridge-ICEyZi0A7piLyLn8xFTVYg==/base.apk: 1 file pulled, 0 skipped. 41.8 MB/s (227991443 bytes in 5.200s)\nORIGINAL_APK_SHA256_MATCH=true\nORIGINAL_APK_RESTORED=true\nPRODUCTION_ROLE_UNCHANGED=true\nONE_MAIN_APP=true\nNEW_QA_ENDPOINT_REMOVED=true\nGSM_HOST_READY=true\nNO_CALLS_NO_DATA_CLEAR=true\nSTAGE=DELETE_REQUESTED_FEATURE_BRANCH\nTo https://github.com/MichalMatu/ai-calls.git\n - [deleted]           feat/outgoing-live-qa-20261125\nREMOTE_FEATURE_BRANCH_DELETED=true\nLOCAL_FEATURE_BRANCH_ABSENT=true\nMAIN_UNCHANGED=true\nROLLBACK_COMPLETE=true\n",
+      "output_policy": "stream",
+      "output_truncated": false,
+      "peak_rss_mb": 92.92,
+      "stage_index": 1,
+      "stage_name": "restore-pre-task-original-apk-verify-and-delete-exact-feature-branch",
+      "stage_phase": "commands",
+      "stage_timeout": 300,
+      "stage_total": 1,
+      "timed_out": false
+    }
+  ],
+  "daemon_version": "4.20.16",
+  "edits": {},
+  "finished_at": "2026-11-25T23:59:01.619463+00:00",
+  "git_diff": {
+    "elapsed_seconds": 0.071,
+    "exit_code": 0,
+    "output": ""
+  },
+  "git_status": {
+    "elapsed_seconds": 0.096,
+    "exit_code": 0,
+    "output": ""
+  },
+  "id": "aicalls-rollback-before-live-qa-delete-feature-20261126-v1",
+  "idle_timeout": 120,
+  "memory_limit_mb": 1024,
+  "mode": "commands",
+  "stages": [
+    {
+      "elapsed_seconds": 39.506,
+      "outcome": "passed",
+      "stage_index": 1,
+      "stage_name": "restore-pre-task-original-apk-verify-and-delete-exact-feature-branch",
+      "stage_phase": "commands",
+      "stage_total": 1
+    }
+  ],
+  "started_at": "2026-11-25T23:58:20.360141+00:00",
+  "status": "done",
+  "task_digest": "b1dee9c4990995cc99ecee179bd82e9feea67226260749e50285b29b65f05098",
+  "task_timeout": 600,
+  "verification": [],
+  "work_branch": "main"
+}

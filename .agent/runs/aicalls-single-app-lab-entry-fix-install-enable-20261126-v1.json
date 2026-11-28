@@ -1,0 +1,13 @@
+{
+  "event": "task_finished",
+  "task_id": "aicalls-single-app-lab-entry-fix-install-enable-20261126-v1",
+  "task_digest": "29462f32ca56f37de4e3b8f799e2d4df90a23927090bb23dad445059453613d8",
+  "status": "done",
+  "failure_reason": null,
+  "finished_at": "2026-11-25T23:48:58.350540+00:00",
+  "attempt_id": "ef3cc0fd0a7fd8ddb2ea7993",
+  "daemon_version": "4.20.16",
+  "daemon_pid": 88047,
+  "updated_at": "2026-11-25T23:48:58.620195+00:00",
+  "pid": 88047
+}

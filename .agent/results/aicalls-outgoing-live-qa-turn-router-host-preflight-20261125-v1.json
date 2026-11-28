@@ -1,0 +1,62 @@
+{
+  "allow_write": false,
+  "attempt_id": "85f4a234e65fa44d6c0624b0",
+  "command_timeout": 1800,
+  "commands": [
+    {
+      "background_process_leak": false,
+      "captured_output_chars": 538,
+      "command": "set -euo pipefail\ntest \"$(uname -s)\" = Darwin\ntest -z \"$(git status --porcelain)\"\ngit fetch --no-tags origin feat/outgoing-live-qa-20261125\ntest \"$(git rev-parse refs/remotes/origin/feat/outgoing-live-qa-20261125)\" = \"988b4c8589eff4fbbcb15dcecd80bb6c6c75267d\"\nROOT=\"$(git rev-parse --show-toplevel)\"\nWORK=\"$(mktemp -d /tmp/aicalls-outgoing-qa-XXXXXX)\"\ntrap 'cd \"$ROOT\"; git worktree remove --force \"$WORK\" >/dev/null 2>&1 || true' EXIT\ngit worktree add --detach \"$WORK\" \"988b4c8589eff4fbbcb15dcecd80bb6c6c75267d\"\ncd \"$WORK\"\necho \"QA_SHA=988b4c8589eff4fbbcb15dcecd80bb6c6c75267d\"\nbash scripts/bin/test-profile.sh preflight\nbash scripts/bin/test-profile.sh focus app '*SupervisedTurnBackendTest'\nbash scripts/bin/test-profile.sh focus app '*ChatRelayBackendTest'\necho \"OUTGOING_QA_ROUTER_HOST_PASS=true\"\n# Read-only readiness; no install, call, pairing, disclosure, or device setting changes.\nif bash scripts/local_agent/device_readiness.sh >/tmp/aicalls-outgoing-readiness-$$.txt 2>&1; then\n  echo 'S22_READINESS_PASS=true'\nelse\n  echo 'S22_READINESS_PASS=false'\nfi\nrm -f /tmp/aicalls-outgoing-readiness-$$.txt\necho \"QA_SHA=988b4c8589eff4fbbcb15dcecd80bb6c6c75267d\"",
+      "current_rss_mb": 3.88,
+      "elapsed_seconds": 1.544,
+      "exit_code": 1,
+      "idle_timed_out": false,
+      "memory_limit_mb": 6144,
+      "memory_limited": false,
+      "output": "From https://github.com/MichalMatu/ai-calls\n * branch              feat/outgoing-live-qa-20261125 -> FETCH_HEAD\n * [new branch]        feat/outgoing-live-qa-20261125 -> origin/feat/outgoing-live-qa-20261125\nPreparing worktree (detached HEAD 988b4c85)\nHEAD is now at 988b4c85 test(relay): cover superseded requests and current-turn response delivery\nQA_SHA=988b4c8589eff4fbbcb15dcecd80bb6c6c75267d\nBLOCKER_REGRESSION: docs/PROJECT.md: missing expected anti-friction wiring: ## Preview release work\nANTI_FRICTION=FAIL (1 known regressions)\n",
+      "output_policy": "stream",
+      "output_truncated": false,
+      "peak_rss_mb": 3.88,
+      "stage_index": 1,
+      "stage_name": "outgoing-qa-router-host-and-readonly-s22-readiness",
+      "stage_phase": "commands",
+      "stage_timeout": 1800,
+      "stage_total": 1,
+      "timed_out": false
+    }
+  ],
+  "daemon_version": "4.20.16",
+  "edits": {},
+  "failure_reason": "command_failed",
+  "finished_at": "2026-11-25T21:55:28.151994+00:00",
+  "git_diff": {
+    "elapsed_seconds": 0.068,
+    "exit_code": 0,
+    "output": ""
+  },
+  "git_status": {
+    "elapsed_seconds": 0.077,
+    "exit_code": 0,
+    "output": ""
+  },
+  "id": "aicalls-outgoing-live-qa-turn-router-host-preflight-20261125-v1",
+  "idle_timeout": 600,
+  "memory_limit_mb": 6144,
+  "mode": "commands",
+  "stages": [
+    {
+      "elapsed_seconds": 1.544,
+      "outcome": "failed",
+      "stage_index": 1,
+      "stage_name": "outgoing-qa-router-host-and-readonly-s22-readiness",
+      "stage_phase": "commands",
+      "stage_total": 1
+    }
+  ],
+  "started_at": "2026-11-25T21:55:25.128268+00:00",
+  "status": "failed",
+  "task_digest": "558942531ab8f3c4fa7fd7885222a099b7cf7707cae45d1f7a45b3a187a370ba",
+  "task_timeout": 2100,
+  "verification": [],
+  "work_branch": "main"
+}

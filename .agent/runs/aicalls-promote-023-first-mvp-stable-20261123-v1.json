@@ -1,0 +1,13 @@
+{
+  "event": "task_finished",
+  "task_id": "aicalls-promote-023-first-mvp-stable-20261123-v1",
+  "task_digest": "40857e72b642d1129e91c78b9049a2750ad6f8c3687d2f9f70e05c535a80aa07",
+  "status": "failed",
+  "failure_reason": "command_failed",
+  "finished_at": "2026-11-23T22:29:28.495653+00:00",
+  "attempt_id": "76e977397752887be0d764a9",
+  "daemon_version": "4.20.16",
+  "daemon_pid": 67300,
+  "updated_at": "2026-11-23T22:29:28.874922+00:00",
+  "pid": 67300
+}

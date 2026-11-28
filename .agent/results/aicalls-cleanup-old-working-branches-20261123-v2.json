@@ -1,0 +1,61 @@
+{
+  "allow_write": true,
+  "attempt_id": "f62e85468e76dc4147afb795",
+  "command_timeout": 900,
+  "commands": [
+    {
+      "background_process_leak": false,
+      "captured_output_chars": 945,
+      "command": "set -euo pipefail\ntest \"$(uname -s)\" = Darwin\ngh auth status >/dev/null 2>&1\nEXPECTED_MAIN=4f5c261301b865ea4af1bbb8d274c7dbd469d707\nACTUAL_MAIN=\"$(gh api repos/MichalMatu/ai-calls/branches/main --jq '.commit.sha')\"\ntest \"$ACTUAL_MAIN\" = \"$EXPECTED_MAIN\" || { echo \"MAIN_MOVED_HOLD=true\"; exit 40; }\nDIR=\"$(mktemp -d /tmp/aicalls-prune-branches-XXXXXX)\"\ntrap 'rm -rf \"$DIR\"' EXIT\ngh api --paginate repos/MichalMatu/ai-calls/branches --jq '.[].name' | sort -u > \"$DIR/branches\"\necho \"BRANCH_COUNT_BEFORE=$(wc -l < \"$DIR/branches\" | tr -d ' ')\"\nfor x in main agent-control fix/release-wireless-adb-20261123; do grep -Fxq \"$x\" \"$DIR/branches\"; done\nOPEN=\"$(gh pr list -R MichalMatu/ai-calls --state open --json number --jq 'length')\"\ntest \"$OPEN\" = 0 || { echo \"OPEN_PR_STOP=true\"; exit 41; }\nCOUNT=0\nwhile IFS= read -r b; do\n case \"$b\" in main|agent-control|fix/release-wireless-adb-20261123) continue;; esac\n echo \"DELETE_BRANCH=$b\"\n gh api -X DELETE \"repos/MichalMatu/ai-calls/git/refs/heads/$b\" >/dev/null\n COUNT=$((COUNT+1))\ndone < \"$DIR/branches\"\necho \"OLD_BRANCHES_DELETED=$COUNT\"\ngh api --paginate repos/MichalMatu/ai-calls/branches --jq '.[].name' | sort -u > \"$DIR/after\"\necho \"BRANCH_COUNT_AFTER=$(wc -l < \"$DIR/after\" | tr -d ' ')\"\ntest \"$(wc -l < \"$DIR/after\" | tr -d ' ')\" -eq 3\nfor x in main agent-control fix/release-wireless-adb-20261123; do grep -Fxq \"$x\" \"$DIR/after\"; done\necho \"OLD_BRANCH_CLEANUP_PASS=true\"",
+      "current_rss_mb": 48.3,
+      "elapsed_seconds": 21.184,
+      "exit_code": 0,
+      "idle_timed_out": false,
+      "memory_limit_mb": 1024,
+      "memory_limited": false,
+      "output": "BRANCH_COUNT_BEFORE=18\nDELETE_BRANCH=chore/mvp-final-closeout-20261123\nDELETE_BRANCH=docs/frontback-separation-status-20261123\nDELETE_BRANCH=fix/s22-ui-lab-method-selection-20261123\nDELETE_BRANCH=refactor/conversation-speech-adapter-20261123\nDELETE_BRANCH=refactor/domain-data-import-gates-20261123\nDELETE_BRANCH=refactor/imported-model-verification-20261123\nDELETE_BRANCH=refactor/lab-start-policy-20261123\nDELETE_BRANCH=refactor/lab-terminal-report-controller-20261123\nDELETE_BRANCH=refactor/modelvoice-presentation-boundary-20261123\nDELETE_BRANCH=refactor/modelvoice-ui-staged-20261122\nDELETE_BRANCH=refactor/runtime-terminal-summary-domain-20261123\nDELETE_BRANCH=refactor/scenario-preparation-policy-20261123\nDELETE_BRANCH=refactor/task-approval-domain-20261123\nDELETE_BRANCH=refactor/tasks-list-controller-20261123\nDELETE_BRANCH=refactor/tts-native-session-20261123\nOLD_BRANCHES_DELETED=15\nBRANCH_COUNT_AFTER=3\nOLD_BRANCH_CLEANUP_PASS=true\n",
+      "output_policy": "stream",
+      "output_truncated": false,
+      "peak_rss_mb": 50.22,
+      "stage_index": 1,
+      "stage_name": "delete-stale-github-branches-keep-main-agent-control-and-active-fix",
+      "stage_phase": "commands",
+      "stage_timeout": 900,
+      "stage_total": 1,
+      "timed_out": false
+    }
+  ],
+  "daemon_version": "4.20.16",
+  "edits": {},
+  "finished_at": "2026-11-23T17:30:11.599055+00:00",
+  "git_diff": {
+    "elapsed_seconds": 0.068,
+    "exit_code": 0,
+    "output": ""
+  },
+  "git_status": {
+    "elapsed_seconds": 0.125,
+    "exit_code": 0,
+    "output": ""
+  },
+  "id": "aicalls-cleanup-old-working-branches-20261123-v2",
+  "idle_timeout": 300,
+  "memory_limit_mb": 1024,
+  "mode": "commands",
+  "stages": [
+    {
+      "elapsed_seconds": 21.184,
+      "outcome": "passed",
+      "stage_index": 1,
+      "stage_name": "delete-stale-github-branches-keep-main-agent-control-and-active-fix",
+      "stage_phase": "commands",
+      "stage_total": 1
+    }
+  ],
+  "started_at": "2026-11-23T17:29:48.543199+00:00",
+  "status": "done",
+  "task_digest": "318a5e97031519a1d133a9ce05277b8f4602da0ec3183de7d57a4f8081090927",
+  "task_timeout": 1200,
+  "verification": [],
+  "work_branch": "main"
+}

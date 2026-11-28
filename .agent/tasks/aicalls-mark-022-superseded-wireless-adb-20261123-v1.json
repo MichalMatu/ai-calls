@@ -1,0 +1,24 @@
+{
+  "id": "aicalls-mark-022-superseded-wireless-adb-20261123-v1",
+  "dedupe_key": "aicalls-mark-022-superseded-wireless-adb-20261123-v1",
+  "dedupe_revision": 1,
+  "agent_binding": "c25f88c0-4682-414c-8062-c47fa4034cb0",
+  "mode": "commands",
+  "work_branch": "main",
+  "allow_write": true,
+  "resources": [
+    "repo:ai-calls-releases"
+  ],
+  "output_policy": "summary",
+  "command_timeout": 600,
+  "idle_timeout": 300,
+  "task_timeout": 900,
+  "memory_limit_mb": 1024,
+  "steps": [
+    {
+      "name": "note-public-v0-2-2-gsm-first-use-blocker",
+      "timeout": 600,
+      "command": "set -euo pipefail\ngh auth status >/dev/null 2>&1\nDIR=\"$(mktemp -d /tmp/aicalls-release022-note-XXXXXX)\"\ntrap 'rm -rf \"$DIR\"' EXIT\ngh release view v0.2.2 -R MichalMatu/ai-calls --json body --jq .body > \"$DIR/original\"\ncat > \"$DIR/new\" <<'EOF'\n**KNOWN MVP BLOCKER (2026-11-23):** v0.2.2 cannot self-pair Wireless ADB or start the production GSM host because that path was restricted to the separate test package. Do not use this APK for GSM calling. A corrected 0.2.3 build is undergoing clean-device acceptance before public release.\n\n---\n\nEOF\ncat \"$DIR/original\" >> \"$DIR/new\"\ngh release edit v0.2.2 -R MichalMatu/ai-calls --notes-file \"$DIR/new\" --prerelease\ngh release view v0.2.2 -R MichalMatu/ai-calls --json body --jq .body | grep -q 'KNOWN MVP BLOCKER'\necho \"OLD_RELEASE_BLOCKER_DISCLOSED=true\""
+    }
+  ]
+}

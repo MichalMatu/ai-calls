@@ -1,0 +1,62 @@
+{
+  "allow_write": true,
+  "attempt_id": "76e977397752887be0d764a9",
+  "command_timeout": 1800,
+  "commands": [
+    {
+      "background_process_leak": false,
+      "captured_output_chars": 411,
+      "command": "set -euo pipefail\ntest \"$(uname -s)\" = Darwin\ngh auth status >/dev/null 2>&1\nREPO=\"MichalMatu/ai-calls\"\necho \"STAGE=WAIT_FOR_PREVIOUS_VERIFIED_ASSET_PUBLICATION\"\nREADY=false\nfor i in $(seq 1 120); do\n  if gh release view v0.2.3 -R \"$REPO\" >/dev/null 2>&1; then READY=true; break; fi\n  sleep 5\ndone\ntest \"$READY\" = true\nOUT=\"$(mktemp -d /tmp/aicalls-mvp023-promote-XXXXXX)\"\ntrap 'rm -rf \"$OUT\"' EXIT\ngh release download v0.2.3 -R \"$REPO\" --pattern \"ai-calls-v0.2.3.apk\" --pattern \"SHA256SUMS.txt\" --dir \"$OUT\"\n(cd \"$OUT\" && shasum -a 256 -c SHA256SUMS.txt)\nSHA=\"$(shasum -a 256 \"$OUT/ai-calls-v0.2.3.apk\" | awk '{print $1}')\"\ntest -s \"$OUT/ai-calls-v0.2.3.apk\"\ncat > \"$OUT/notes.md\" <<EOF\n# AI Calls 0.2.3 — First MVP release\n\n**First regular MVP release** for Samsung Galaxy S22+ (SM-S906B), Android 16. This is a functioning on-device AI calling assistant targeting this supported configuration; it is not represented as a universally supported Android dialer.\n\n## What's included\n- Fixed main-package Wireless ADB pairing and GSM audio-host startup, replacing broken v0.2.2.\n- Guided Phone app role/permissions/SIM setup.\n- On-device Gemma model and voice setup, language switching between Polish and English.\n- Local conversation history and encrypted notes, optional WAV evidence and explicit manual STOP takeover.\n\n## Install\nDownload \\`ai-calls-v0.2.3.apk\\` and \\`SHA256SUMS.txt\\` from this release. Verify:\n\\`shasum -a 256 -c SHA256SUMS.txt\\` (macOS) or \\`sha256sum -c SHA256SUMS.txt\\` (Linux).\nAPK SHA-256: \\`$SHA\\`.\n\nSource commit: \\`af7419f24c96d5c011f57bb730f8db6af163f34b\\`.\nSigning: existing Android Debug certificate, retained for upgrade compatibility with previous MVP builds, **not a dedicated production key**.\n\n## Verification scope and known constraints\nHost full test profile, release build and APK signature verified. Physical S22+ testing of Wireless ADB, host setup, model compatibility, language and safe UI has been recorded at predecessor commits; Polish incoming GSM and recording was verified on earlier v0.2.1. An end-to-end incoming real GSM call for this **exact published 0.2.3 APK** has not been separately documented. Complete live GSM and outgoing-call qualification is still device- and scenario-specific. Do not present it as production-qualified across Android devices. Make a rollback copy before upgrading a live dialer.\n\nv0.2.2 has a known GSM setup defect and must not be installed for normal calling. Its historical git tag is preserved for source history.\nEOF\necho \"STAGE=PROMOTE_RELEASE_TO_STABLE\"\ngh release edit v0.2.3 -R \"$REPO\" --title \"AI Calls 0.2.3 — First MVP release\" --notes-file \"$OUT/notes.md\" --prerelease=false --latest\nDATA=\"$(gh release view v0.2.3 -R \"$REPO\" --json tagName,isPrerelease,isLatest,assets)\"\necho \"$DATA\"\necho \"$DATA\" | python3 -c 'import json,sys; j=json.load(sys.stdin); assert j[\"tagName\"]==\"v0.2.3\"; assert j[\"isPrerelease\"] is False; assert {a[\"name\"] for a in j[\"assets\"]} >= {\"ai-calls-v0.2.3.apk\",\"SHA256SUMS.txt\"}'\necho \"STABLE_MVP_RELEASE_VERIFIED=true\"\necho \"STABLE_APK_URL=https://github.com/MichalMatu/ai-calls/releases/download/v0.2.3/ai-calls-v0.2.3.apk\"\n",
+      "current_rss_mb": 11.22,
+      "elapsed_seconds": 36.23,
+      "exit_code": 1,
+      "idle_timed_out": false,
+      "memory_limit_mb": 1024,
+      "memory_limited": false,
+      "output": "STAGE=WAIT_FOR_PREVIOUS_VERIFIED_ASSET_PUBLICATION\nai-calls-v0.2.3.apk: OK\nSTAGE=PROMOTE_RELEASE_TO_STABLE\nhttps://github.com/MichalMatu/ai-calls/releases/tag/v0.2.3\nUnknown JSON field: \"isLatest\"\nAvailable fields:\n  apiUrl\n  assets\n  author\n  body\n  createdAt\n  databaseId\n  id\n  isDraft\n  isImmutable\n  isPrerelease\n  name\n  publishedAt\n  tagName\n  tarballUrl\n  targetCommitish\n  uploadUrl\n  url\n  zipballUrl\n",
+      "output_policy": "stream",
+      "output_truncated": false,
+      "peak_rss_mb": 50.55,
+      "stage_index": 1,
+      "stage_name": "verify-v023-release-assets-and-promote-to-regular-mvp",
+      "stage_phase": "commands",
+      "stage_timeout": 1800,
+      "stage_total": 1,
+      "timed_out": false
+    }
+  ],
+  "daemon_version": "4.20.16",
+  "edits": {},
+  "failure_reason": "command_failed",
+  "finished_at": "2026-11-23T22:29:28.495653+00:00",
+  "git_diff": {
+    "elapsed_seconds": 0.068,
+    "exit_code": 0,
+    "output": ""
+  },
+  "git_status": {
+    "elapsed_seconds": 0.105,
+    "exit_code": 0,
+    "output": ""
+  },
+  "id": "aicalls-promote-023-first-mvp-stable-20261123-v1",
+  "idle_timeout": 1200,
+  "memory_limit_mb": 1024,
+  "mode": "commands",
+  "stages": [
+    {
+      "elapsed_seconds": 36.23,
+      "outcome": "failed",
+      "stage_index": 1,
+      "stage_name": "verify-v023-release-assets-and-promote-to-regular-mvp",
+      "stage_phase": "commands",
+      "stage_total": 1
+    }
+  ],
+  "started_at": "2026-11-23T22:28:50.436438+00:00",
+  "status": "failed",
+  "task_digest": "40857e72b642d1129e91c78b9049a2750ad6f8c3687d2f9f70e05c535a80aa07",
+  "task_timeout": 1900,
+  "verification": [],
+  "work_branch": "main"
+}

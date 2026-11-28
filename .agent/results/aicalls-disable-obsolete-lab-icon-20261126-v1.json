@@ -1,0 +1,61 @@
+{
+  "allow_write": true,
+  "attempt_id": "021163bc4417c64f44744666",
+  "command_timeout": 180,
+  "commands": [
+    {
+      "background_process_leak": false,
+      "captured_output_chars": 204,
+      "command": "set -euo pipefail\ntest \"$(uname -s)\" = Darwin\nSERIAL=\"$(PYTHONPATH=scripts python3 -m aicall_tools.device.s22_adb_discovery --serial RFCT70L7E8J)\"\nadbq() { adb -s \"$SERIAL\" \"$@\"; }\nMAIN=pl.michalmatu.aicallbridge\nLAB=pl.michalmatu.aicallbridge.s8lab\ncheck_safe() {\n  local states mode role host\n  states=\"$(adbq shell dumpsys telephony.registry | sed -n 's/.*mCallState=\\([0-9][0-9]*\\).*/\\1/p' | tr -d '\\r')\"\n  mode=\"$(adbq shell dumpsys audio | sed -n 's/.*Actual mode = \\(MODE_[A-Z_]*\\).*/\\1/p' | head -n1 | tr -d '\\r')\"\n  role=\"$(adbq shell cmd role get-role-holders --user 0 android.app.role.DIALER | tr -d '\\r')\"\n  host=\"$(adbq shell content call --uri content://pl.michalmatu.aicallbridge.gsmbinder --method status)\"\n  [[ -n \"$states\" && -z \"$(printf '%s\\n' \"$states\" | grep -v '^0$' || true)\" && \"$mode\" == MODE_NORMAL && \"$role\" == \"$MAIN\" && \"$host\" == *host_registered=true* ]]\n}\ncheck_safe || { echo HOLD_PHONE_OR_MAIN_HOST_NOT_READY; exit 50; }\nif adbq shell pm path --user 0 \"$LAB\" | grep -q '^package:'; then\n  adbq shell pm disable-user --user 0 \"$LAB\"\n  adbq shell pm list packages -d --user 0 | tr -d '\\r' | grep -Fx \"package:$LAB\"\n  echo LAB_DISABLED_DATA_PRESERVED=true\nelse\n  echo LAB_ALREADY_ABSENT=true\nfi\ncheck_safe || { echo POSTCHECK_HOLD; exit 51; }\necho MAIN_APP_AND_GSM_HOST_UNCHANGED=true\necho NO_UNINSTALL_NO_CALLS=true",
+      "current_rss_mb": 11.03,
+      "elapsed_seconds": 4.532,
+      "exit_code": 0,
+      "idle_timed_out": false,
+      "memory_limit_mb": 1024,
+      "memory_limited": false,
+      "output": "Package pl.michalmatu.aicallbridge.s8lab new state: disabled-user\npackage:pl.michalmatu.aicallbridge.s8lab\nLAB_DISABLED_DATA_PRESERVED=true\nMAIN_APP_AND_GSM_HOST_UNCHANGED=true\nNO_UNINSTALL_NO_CALLS=true\n",
+      "output_policy": "stream",
+      "output_truncated": false,
+      "peak_rss_mb": 11.16,
+      "stage_index": 1,
+      "stage_name": "disable-obsolete-s8lab-only-after-main-idle-host-check",
+      "stage_phase": "commands",
+      "stage_timeout": 180,
+      "stage_total": 1,
+      "timed_out": false
+    }
+  ],
+  "daemon_version": "4.20.16",
+  "edits": {},
+  "finished_at": "2026-11-25T23:39:02.108033+00:00",
+  "git_diff": {
+    "elapsed_seconds": 0.068,
+    "exit_code": 0,
+    "output": ""
+  },
+  "git_status": {
+    "elapsed_seconds": 0.072,
+    "exit_code": 0,
+    "output": ""
+  },
+  "id": "aicalls-disable-obsolete-lab-icon-20261126-v1",
+  "idle_timeout": 90,
+  "memory_limit_mb": 1024,
+  "mode": "commands",
+  "stages": [
+    {
+      "elapsed_seconds": 4.532,
+      "outcome": "passed",
+      "stage_index": 1,
+      "stage_name": "disable-obsolete-s8lab-only-after-main-idle-host-check",
+      "stage_phase": "commands",
+      "stage_total": 1
+    }
+  ],
+  "started_at": "2026-11-25T23:38:56.070773+00:00",
+  "status": "done",
+  "task_digest": "6a39f5d473827acc7427b06cb96807f04126812b2a2bc87e7873d99ffb330295",
+  "task_timeout": 300,
+  "verification": [],
+  "work_branch": "main"
+}

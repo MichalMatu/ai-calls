@@ -1,0 +1,24 @@
+{
+  "id": "aicalls-single-app-outgoing-qa-targeted-20261126-v1",
+  "dedupe_key": "aicalls-single-app-outgoing-qa-targeted-20261126-v1",
+  "dedupe_revision": 1,
+  "agent_binding": "c25f88c0-4682-414c-8062-c47fa4034cb0",
+  "mode": "commands",
+  "work_branch": "main",
+  "allow_write": true,
+  "resources": [
+    "adb:rfct70l7e8j"
+  ],
+  "output_policy": "summary",
+  "command_timeout": 2400,
+  "idle_timeout": 600,
+  "task_timeout": 3000,
+  "memory_limit_mb": 6144,
+  "steps": [
+    {
+      "name": "targeted-single-app-qa-and-signed-candidate-with-rollback",
+      "timeout": 2400,
+      "command": "set -euo pipefail\ntest \"$(uname -s)\" = Darwin\ntest -z \"$(git status --porcelain)\"\ngit fetch --no-tags origin feat/outgoing-live-qa-20261125\ntest \"$(git rev-parse refs/remotes/origin/feat/outgoing-live-qa-20261125)\" = \"2cd0010be02ae660ee27815328f4c32d44932623\"\nROOT=\"$(git rev-parse --show-toplevel)\"\nWORK=\"$(mktemp -d /tmp/aicalls-single-app-XXXXXX)\"\nOUT=\"$(mktemp -d /tmp/aicalls-single-app-sign-XXXXXX)\"\ntrap 'cd \"$ROOT\"; git worktree remove --force \"$WORK\" >/dev/null 2>&1 || true; rm -rf \"$OUT\"' EXIT\ngit worktree add --detach \"$WORK\" \"2cd0010be02ae660ee27815328f4c32d44932623\"\ncd \"$WORK\"\necho \"QA_SHA=2cd0010be02ae660ee27815328f4c32d44932623\"\necho STAGE=TARGETED_QA\nbash scripts/bin/test-profile.sh preflight\nPYTHONPATH=scripts python3 -m unittest scripts.tests.calls.test_outgoing_qa scripts.tests.test_gsm_single_transport_contract scripts.tests.test_ux05_locale_accessibility scripts.tests.test_docs_check\nbash scripts/bin/test-profile.sh focus app '*OutgoingQaSessionTest'\necho TARGETED_QA_PASS=true\necho STAGE=BUILD_SIGNED_MAIN_APP\nif [[ -z \"${ANDROID_HOME:-}\" && -d \"$HOME/Library/Android/sdk\" ]]; then export ANDROID_HOME=\"$HOME/Library/Android/sdk\"; export ANDROID_SDK_ROOT=\"$ANDROID_HOME\"; fi\n./gradlew :app:assembleRelease\nUNSIGNED=app/build/outputs/apk/release/app-release-unsigned.apk\ntest -s \"$UNSIGNED\"\nSIGNER=\"$(find \"$HOME/Library/Android/sdk/build-tools\" -name apksigner -type f | sort -V | tail -1)\"\nZIPALIGN=\"$(dirname \"$SIGNER\")/zipalign\"\ntest -x \"$SIGNER\" && test -x \"$ZIPALIGN\"\n\"$ZIPALIGN\" -f -p 4 \"$UNSIGNED\" \"$OUT/aligned.apk\"\nSIGNED=\"$OUT/candidate.apk\"\n\"$SIGNER\" sign --ks \"$HOME/.android/debug.keystore\" --ks-key-alias androiddebugkey --ks-pass pass:android --key-pass pass:android --out \"$SIGNED\" \"$OUT/aligned.apk\"\n\"$SIGNER\" verify \"$SIGNED\"\nCERT=\"$(\"$SIGNER\" verify --print-certs \"$SIGNED\" | sed -n 's/.*Signer #1 certificate SHA-256 digest: //p' | head -1)\"\ntest \"$CERT\" = fb07493cf97b0a84ec410f7f72f12938b7f9d47151546e15c049c49c27807b11\necho SIGNED_MAIN_APP_READY=true\numask 077\nCACHE=\"$HOME/.local/share/aicalls-qa/2cd0010be02ae660ee27815328f4c32d44932623\"\nmkdir -p \"$CACHE\"\ncp \"$SIGNED\" \"$CACHE/candidate.apk\"\ntest \"$(shasum -a 256 \"$SIGNED\" | awk '{print $1}')\" = \"$(shasum -a 256 \"$CACHE/candidate.apk\" | awk '{print $1}')\"\necho SIGNED_CANDIDATE_RETAINED=true\necho STAGE=EXACT_PHONE_READ_ONLY\nSERIAL=\"$(PYTHONPATH=scripts python3 -m aicall_tools.device.s22_adb_discovery --serial RFCT70L7E8J)\"\nPKG=pl.michalmatu.aicallbridge\nROLE=\"$(adb -s \"$SERIAL\" shell cmd role get-role-holders --user 0 android.app.role.DIALER | tr -d '\\r')\"\ntest \"$ROLE\" = \"$PKG\"\nSTATE=\"$(adb -s \"$SERIAL\" shell dumpsys telephony.registry | sed -n 's/.*mCallState=\\([0-9]\\).*/\\1/p' | head -n1 | tr -d '\\r')\"\nMODE=\"$(adb -s \"$SERIAL\" shell dumpsys audio | sed -n 's/.*Actual mode = \\(MODE_[A-Z_]*\\).*/\\1/p' | head -n1 | tr -d '\\r')\"\ntest \"$STATE\" = 0 && test \"$MODE\" = MODE_NORMAL\nPATHS=\"$(adb -s \"$SERIAL\" shell pm path \"$PKG\" | tr -d '\\r')\"\ntest \"$(printf '%s\\n' \"$PATHS\" | grep -c '^package:')\" = 1\nREMOTE=\"$(printf '%s\\n' \"$PATHS\" | sed -n 's/^package://p')\"\nadb -s \"$SERIAL\" pull \"$REMOTE\" \"$OUT/previous.apk\" >/dev/null\nPREV_CERT=\"$(\"$SIGNER\" verify --print-certs \"$OUT/previous.apk\" | sed -n 's/.*Signer #1 certificate SHA-256 digest: //p' | head -1)\"\ntest \"$PREV_CERT\" = \"$CERT\"\ncp \"$OUT/previous.apk\" \"$CACHE/previous.apk\"\necho PHONE_IDLE_AND_SIGNER_MATCH=true\necho ROLLBACK_APK_RETAINED=true\necho NO_INSTALL_NO_CALLS=true\necho \"QA_SHA=2cd0010be02ae660ee27815328f4c32d44932623\""
+    }
+  ]
+}

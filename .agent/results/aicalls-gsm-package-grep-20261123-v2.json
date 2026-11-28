@@ -1,0 +1,61 @@
+{
+  "allow_write": false,
+  "attempt_id": "795c937975a9695aa7db7ae8",
+  "command_timeout": 600,
+  "commands": [
+    {
+      "background_process_leak": false,
+      "captured_output_chars": 8056,
+      "command": "set -euo pipefail\ntest \"$(uname -s)\" = Darwin\ntest -z \"$(git status --porcelain)\"\ngit fetch --no-tags origin fix/release-wireless-adb-20261123\nROOT=\"$(git rev-parse --show-toplevel)\"\nTMP=\"$(mktemp -d /tmp/aicalls-gsm-grep-XXXXXX)\"\ntrap 'cd \"$ROOT\"; git worktree remove --force \"$TMP\" >/dev/null 2>&1 || true' EXIT\ngit worktree add --detach \"$TMP\" origin/fix/release-wireless-adb-20261123 >/dev/null\ncd \"$TMP\"\necho \"QA_SHA=$(git rev-parse HEAD)\"\ngrep -RnE 'GsmShellMediaProtocol\\.S8_PACKAGE|LocalAdbGsmPolicy\\.(START|STATUS)|\\.gsmbinder|S8_PACKAGE|CallMediaBackendMode' app/src/main scripts 2>/dev/null | head -180 || true\necho GSM_GREP_PASS=true",
+      "current_rss_mb": 3.53,
+      "elapsed_seconds": 1.869,
+      "exit_code": 0,
+      "idle_timed_out": false,
+      "memory_limit_mb": 1024,
+      "memory_limited": false,
+      "output": "From https://github.com/MichalMatu/ai-calls\n * branch              fix/release-wireless-adb-20261123 -> FETCH_HEAD\n * [new branch]        fix/release-wireless-adb-20261123 -> origin/fix/release-wireless-adb-20261123\nPreparing worktree (detached HEAD c7cc03f5)\nQA_SHA=c7cc03f50f2cb6d27f4f11a872cfbb1278213280\napp/src/main/AndroidManifest.xml:81:            android:authorities=\"${applicationId}.gsmbinder\"\napp/src/main/java/pl/michalmatu/aicallbridge/session/GsmMediaTransportReadiness.java:19:        return CallMediaBackendMode.forPackage(packageName) == CallMediaBackendMode.GSM_SHELL_ADB\napp/src/main/java/pl/michalmatu/aicallbridge/session/GsmShellBinderMediaHost.java:32:        if (args.length == 0) packageName = GsmShellMediaProtocol.S8_PACKAGE;\napp/src/main/java/pl/michalmatu/aicallbridge/session/GsmShellMediaProtocol.java:13:    public static final String S8_PACKAGE = \"pl.michalmatu.aicallbridge.s8lab\";\napp/src/main/java/pl/michalmatu/aicallbridge/session/GsmShellMediaProtocol.java:28:        return S8_PACKAGE.equals(packageName) || APP_PACKAGE.equals(packageName);\napp/src/main/java/pl/michalmatu/aicallbridge/session/GsmShellMediaProtocol.java:34:        return packageName + \".gsmbinder\";\napp/src/main/java/pl/michalmatu/aicallbridge/session/GsmShellBinderRegistryProvider.java:21:    public static final String AUTHORITY = GsmShellMediaProtocol.S8_PACKAGE + \".gsmbinder\";\napp/src/main/java/pl/michalmatu/aicallbridge/session/CallMediaSessionRuntime.java:22:        this(context, listener, CallMediaBackendMode.forPackage(\napp/src/main/java/pl/michalmatu/aicallbridge/session/CallMediaSessionRuntime.java:30:        CallMediaBackendMode mode\napp/src/main/java/pl/michalmatu/aicallbridge/session/CallMediaSessionRuntime.java:51:    private static CallMediaSessionBackend createBackend(Context context, CallMediaBackendMode mode) {\napp/src/main/java/pl/michalmatu/aicallbridge/session/CallMediaSessionRuntime.java:53:        if (Objects.requireNonNull(mode, \"mode\") != CallMediaBackendMode.GSM_SHELL_ADB\napp/src/main/java/pl/michalmatu/aicallbridge/session/CallMediaSessionRuntime.java:54:            || !GsmShellMediaProtocol.S8_PACKAGE.equals(context.getPackageName())) {\napp/src/main/java/pl/michalmatu/aicallbridge/session/GsmShellExternalProviderClient.java:35:        return acquire(GsmShellMediaProtocol.S8_PACKAGE);\napp/src/main/java/pl/michalmatu/aicallbridge/session/CallMediaBackendMode.java:4:public enum CallMediaBackendMode {\napp/src/main/java/pl/michalmatu/aicallbridge/session/CallMediaBackendMode.java:8:    public static CallMediaBackendMode forPackage(String packageName) {\napp/src/main/kotlin/pl/michalmatu/aicallbridge/ui/SettingsHubActivity.kt:18:import pl.michalmatu.aicallbridge.session.CallMediaBackendMode\napp/src/main/kotlin/pl/michalmatu/aicallbridge/ui/SettingsHubActivity.kt:36:        if (CallMediaBackendMode.forPackage(packageName) == CallMediaBackendMode.GSM_SHELL_ADB) {\napp/src/main/kotlin/pl/michalmatu/aicallbridge/ui/SettingsHubActivity.kt:42:        if (CallMediaBackendMode.forPackage(packageName) != CallMediaBackendMode.GSM_SHELL_ADB) {\napp/src/main/kotlin/pl/michalmatu/aicallbridge/ui/DeveloperToolsActivity.kt:10:import pl.michalmatu.aicallbridge.session.CallMediaBackendMode\napp/src/main/kotlin/pl/michalmatu/aicallbridge/ui/DeveloperToolsActivity.kt:24:        if (CallMediaBackendMode.forPackage(packageName) == CallMediaBackendMode.GSM_SHELL_ADB) {\napp/src/main/kotlin/pl/michalmatu/aicallbridge/textagent/LocalPhoneLlmBackendFactory.kt:16:        GsmShellMediaProtocol.S8_PACKAGE == packageName\napp/src/main/kotlin/pl/michalmatu/aicallbridge/incoming/IncomingAssistantSettingsActivity.kt:24:import pl.michalmatu.aicallbridge.session.CallMediaBackendMode\napp/src/main/kotlin/pl/michalmatu/aicallbridge/incoming/IncomingAssistantSettingsActivity.kt:78:        if (CallMediaBackendMode.forPackage(packageName) == CallMediaBackendMode.GSM_SHELL_ADB) {\napp/src/main/kotlin/pl/michalmatu/aicallbridge/conversation/AndroidConversationRuntime.kt:155:            \"audio_transport=\" + pl.michalmatu.aicallbridge.session.CallMediaBackendMode.forPackage(context.packageName).name.lowercase(),\napp/src/main/kotlin/pl/michalmatu/aicallbridge/session/LocalAdbGsmPolicy.kt:6:    const val STATUS = \"content call --uri content://pl.michalmatu.aicallbridge.s8lab.gsmbinder --method status\"\napp/src/main/kotlin/pl/michalmatu/aicallbridge/session/LocalAdbGsmPolicy.kt:16:        GsmShellMediaProtocol.S8_PACKAGE -> STATUS\napp/src/main/kotlin/pl/michalmatu/aicallbridge/session/LocalAdbGsmPolicy.kt:18:            \"content call --uri content://pl.michalmatu.aicallbridge.gsmbinder --method status\"\napp/src/main/kotlin/pl/michalmatu/aicallbridge/session/LocalAdbGsmPolicy.kt:23:        GsmShellMediaProtocol.S8_PACKAGE -> START\napp/src/main/kotlin/pl/michalmatu/aicallbridge/session/LocalAdbGsmController.kt:113:                    if (LocalAdbGsmPolicy.hostRegistered(checked(LocalAdbGsmPolicy.STATUS)))\nscripts/bin/s8_gsm_reconnect.py:22:URI = \"content://\" + APP + \".gsmbinder\"\nscripts/bin/start-s8-gsm-shell.sh:38:  --uri content://pl.michalmatu.aicallbridge.s8lab.gsmbinder \\\nscripts/bin/start-s8-gsm-shell.sh:59:  response=\"$(adb -s \"$ANDROID_SERIAL\" shell content call --uri content://pl.michalmatu.aicallbridge.s8lab.gsmbinder --method status 2>/dev/null || true)\"\nscripts/bin/run-s22-safe-ui-lab.sh:16:uri=\"content://$pkg.gsmbinder\"\nscripts/tests/device/test_s22_orange_audio_flow.py:25:        self.device.safe_preflight.assert_called_once_with(orange.S8_PACKAGE)\nscripts/tests/test_gsm_single_transport_contract.py:24:        mode = (session / \"CallMediaBackendMode.java\").read_text()\nscripts/tests/test_gsm_single_transport_contract.py:30:        self.assertIn(\"GsmShellMediaProtocol.S8_PACKAGE.equals(packageName)\", mode)\nscripts/tests/test_gsm_single_transport_contract.py:33:        self.assertIn('S8_PACKAGE = \"pl.michalmatu.aicallbridge.s8lab\"', protocol)\nscripts/aicall_tools/diagnostics/ai_calls_usb_lab.py:30:        PACKAGE, S8_PACKAGE, SERIAL, ACTIVITY, Device, DiagnosticError, invoke, run_bridge,\nscripts/aicall_tools/diagnostics/ai_calls_usb_lab.py:34:        PACKAGE, S8_PACKAGE, SERIAL, ACTIVITY, Device, DiagnosticError, invoke, run_bridge,\nscripts/aicall_tools/diagnostics/ai_calls_usb_lab.py:37:LAB_PACKAGE = S8_PACKAGE\nscripts/aicall_tools/diagnostics/ai_calls_usb_debug.py:22:S8_PACKAGE = PACKAGE + \".s8lab\"\nscripts/aicall_tools/diagnostics/ai_calls_usb_debug.py:211:        if package not in {PACKAGE, S8_PACKAGE}:\nscripts/aicall_tools/diagnostics/ai_calls_usb_debug.py:216:            if package == S8_PACKAGE:\nscripts/aicall_tools/diagnostics/s22_lab_regression.py:13:from .ai_calls_usb_debug import Device, DiagnosticError, S8_PACKAGE\nscripts/aicall_tools/diagnostics/s22_lab_regression.py:79:    device.safe_preflight(S8_PACKAGE)\nscripts/aicall_tools/diagnostics/s22_lab_regression.py:101:            raw = device.checked(\"shell\", \"run-as\", S8_PACKAGE, \"cat\", PRIVATE_TRANSCRIPT)\nscripts/aicall_tools/diagnostics/s22_lab_regression.py:148:        paths = device.checked(\"shell\", \"pm\", \"path\", S8_PACKAGE).splitlines()\nscripts/aicall_tools/device/s22_orange_audio_flow.py:17:from aicall_tools.diagnostics.ai_calls_usb_debug import Device, DiagnosticError, PACKAGE, S8_PACKAGE\nscripts/aicall_tools/device/s22_orange_audio_flow.py:22:PILOT = f\"{S8_PACKAGE}/{PACKAGE}.developerrelay.SupervisedCallPilotActivity\"\nscripts/aicall_tools/device/s22_orange_audio_flow.py:23:HOST_URI = f\"content://{S8_PACKAGE}.gsmbinder\"\nscripts/aicall_tools/device/s22_orange_audio_flow.py:54:            if node.attrib.get(\"package\") != S8_PACKAGE or node.attrib.get(\"enabled\") != \"true\":\nscripts/aicall_tools/device/s22_orange_audio_flow.py:82:    device.safe_preflight(S8_PACKAGE)\nscripts/aicall_tools/device/s22_orange_audio_flow.py:89:    baseline_id = None if transport_only else read_call_technical_summary(device, S8_PACKAGE)[0]\nscripts/aicall_tools/device/s22_orange_audio_flow.py:154:            pilot_id, current_report = read_call_technical_summary(device, S8_PACKAGE)\nGSM_GREP_PASS=true\n",
+      "output_policy": "stream",
+      "output_truncated": false,
+      "peak_rss_mb": 3.53,
+      "stage_index": 1,
+      "stage_name": "audit-release-and-debug-package-identity-references",
+      "stage_phase": "commands",
+      "stage_timeout": 600,
+      "stage_total": 1,
+      "timed_out": false
+    }
+  ],
+  "daemon_version": "4.20.16",
+  "edits": {},
+  "finished_at": "2026-11-23T17:21:59.513901+00:00",
+  "git_diff": {
+    "elapsed_seconds": 0.068,
+    "exit_code": 0,
+    "output": ""
+  },
+  "git_status": {
+    "elapsed_seconds": 0.09,
+    "exit_code": 0,
+    "output": ""
+  },
+  "id": "aicalls-gsm-package-grep-20261123-v2",
+  "idle_timeout": 300,
+  "memory_limit_mb": 1024,
+  "mode": "commands",
+  "stages": [
+    {
+      "elapsed_seconds": 1.869,
+      "outcome": "passed",
+      "stage_index": 1,
+      "stage_name": "audit-release-and-debug-package-identity-references",
+      "stage_phase": "commands",
+      "stage_total": 1
+    }
+  ],
+  "started_at": "2026-11-23T17:21:56.074427+00:00",
+  "status": "done",
+  "task_digest": "0f7b9ab259308d64a655d92b563f081d1917c73c9374110586feccf63c65662d",
+  "task_timeout": 900,
+  "verification": [],
+  "work_branch": "main"
+}

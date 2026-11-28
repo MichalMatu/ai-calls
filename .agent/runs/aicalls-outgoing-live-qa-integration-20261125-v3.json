@@ -1,0 +1,13 @@
+{
+  "event": "task_finished",
+  "task_id": "aicalls-outgoing-live-qa-integration-20261125-v3",
+  "task_digest": "ad765ae322776cdf0c42141dfe664db6d52d0448652d7aac45193713ad427cfc",
+  "status": "failed",
+  "failure_reason": "command_failed",
+  "finished_at": "2026-11-25T22:53:38.058147+00:00",
+  "attempt_id": "064b6883bdc398767d78c342",
+  "daemon_version": "4.20.16",
+  "daemon_pid": 20608,
+  "updated_at": "2026-11-25T22:53:38.313455+00:00",
+  "pid": 20608
+}

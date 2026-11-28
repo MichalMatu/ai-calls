@@ -1,0 +1,13 @@
+{
+  "event": "task_finished",
+  "task_id": "aicalls-mvp-022-final-build-install-publish-20261123-v1",
+  "task_digest": "b2302cf2a0d93a20e546a760812021a9960001cad1b0c7eeba2e8edf368f8bb7",
+  "status": "failed",
+  "failure_reason": "command_failed",
+  "finished_at": "2026-11-23T16:54:42.207552+00:00",
+  "attempt_id": "6406f3acac696c1d3a2fa9a2",
+  "daemon_version": "4.20.16",
+  "daemon_pid": 65134,
+  "updated_at": "2026-11-23T16:54:42.622203+00:00",
+  "pid": 65134
+}
